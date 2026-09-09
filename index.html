@@ -12,10 +12,10 @@
   html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#100b16;color:#fff7ea;font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent}
   body{touch-action:manipulation}
   #camera{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#0d0a10;z-index:0;display:none;transform:scaleX(1)}
-  #veil{position:fixed;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.40),rgba(0,0,0,.04) 45%,rgba(0,0,0,.48));z-index:1;display:none;pointer-events:none}
+  #veil{position:fixed;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.08) 45%,rgba(0,0,0,.55));z-index:1;display:none;pointer-events:none}
   #three{position:fixed;inset:0;z-index:3;display:none;touch-action:none}
   #landing{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:28px;text-align:center;background:
-    radial-gradient(circle at 50% 20%,rgba(232,199,123,.2),transparent 28%),
+    radial-gradient(circle at 50% 20%,rgba(232,199,123,.25),transparent 30%),
     linear-gradient(160deg,#140c1b,#28152f 55%,#100a15)}
   .panel{max-width:520px;width:100%}
   .eyebrow{text-transform:uppercase;letter-spacing:.28em;color:#ead391;font-size:11px}
@@ -28,6 +28,7 @@
   .topbar{position:absolute;top:env(safe-area-inset-top,18px);left:0;right:0;padding:18px 18px 0;display:flex;justify-content:space-between;align-items:flex-start}
   .brand{font:11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:#f5ddb2;text-shadow:0 2px 8px #000}
   .close{pointer-events:auto;border:0;border-radius:50%;width:40px;height:40px;background:rgba(10,7,14,.65);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  .ar-hint{position:absolute;top:calc(env(safe-area-inset-top,18px) + 52px);left:50%;transform:translateX(-50%);background:rgba(16,11,22,.75);border:1px solid rgba(232,199,123,.4);padding:6px 16px;border-radius:999px;font:11px system-ui,-apple-system,sans-serif;color:#e8d8b7;backdrop-filter:blur(6px);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.4)}
   .caption{position:absolute;left:50%;bottom:max(26px,env(safe-area-inset-bottom,26px));transform:translateX(-50%);width:min(92%,560px);text-align:center;text-shadow:0 3px 16px #000}
   .caption .small{font:11px system-ui,-apple-system,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#f0dba7}
   .caption h2{font-size:clamp(28px,7vw,46px);font-weight:500;margin:7px 0 4px}
@@ -61,10 +62,11 @@
     <div class="brand">Arjun &amp; Anaya · 21.02.27</div>
     <button class="close" id="close" aria-label="Close AR mode">×</button>
   </div>
+  <div class="ar-hint">✨ Point camera at table • Touch to spin</div>
   <div class="caption">
     <div class="small">You are invited</div>
     <h2>Celebrate with us</h2>
-    <p>Imagine this royal palace rising from the printed invitation. In the final version, the 3D scene would lock to the card artwork.</p>
+    <p>Imagine this royal palace rising vertically from the printed invitation card. Swipe or tilt your phone to inspect the 3D details.</p>
     <div class="chips"><span class="chip">City Palace · Jaipur</span><span class="chip">Sunday · 7:00 PM</span></div>
   </div>
 </div>
@@ -88,71 +90,149 @@ const errorText=document.getElementById('errorText');
 const dismissError=document.getElementById('dismissError');
 
 let stream=null, raf=0;
-let scene,camera3d,renderer,group;
+let scene,camera3d,renderer,group,particles;
+let autoRotateY=0;
 let targetRX=0,targetRY=0,currentRX=0,currentRY=0;
 let isDragging=false, previousMouseX=0, previousMouseY=0;
 
-function addMesh(geo,mat,x,y,z){
-  const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); group.add(m); return m;
+function addMesh(geo,mat,x,y,z,parent=group){
+  const m=new THREE.Mesh(geo,mat);
+  m.position.set(x,y,z);
+  parent.add(m);
+  return m;
 }
 
-function buildPalace(){
+function buildFull3DPalace(){
   group=new THREE.Group();
 
-  const stone=new THREE.MeshStandardMaterial({color:0xe8d8b7,roughness:.72,metalness:.08});
-  const gold=new THREE.MeshStandardMaterial({color:0xe9c86f,roughness:.4,metalness:.38});
-  const red=new THREE.MeshStandardMaterial({color:0x9e303b,roughness:.6});
-  const dark=new THREE.MeshStandardMaterial({color:0x2b1c2a,roughness:.8});
-  const warm=new THREE.MeshStandardMaterial({color:0xffd983,emissive:0x8a5a19,emissiveIntensity:.8});
+  const stone=new THREE.MeshStandardMaterial({color:0xeadac0,roughness:.65,metalness:.08});
+  const gold=new THREE.MeshStandardMaterial({color:0xebc465,roughness:.35,metalness:.45});
+  const red=new THREE.MeshStandardMaterial({color:0x9e2b37,roughness:.55});
+  const dark=new THREE.MeshStandardMaterial({color:0x231624,roughness:.8});
+  const warmLight=new THREE.MeshStandardMaterial({color:0xffd075,emissive:0xd97c1e,emissiveIntensity:1.2});
 
-  addMesh(new THREE.BoxGeometry(3.8,1.8,1.15),stone,0,.35,0);
-  addMesh(new THREE.BoxGeometry(.72,2.4,1.35),stone,-1.62,.65,0);
-  addMesh(new THREE.BoxGeometry(.72,2.4,1.35),stone,1.62,.65,0);
+  // 1. Multi-tiered Base Podium (Courtyard Platform)
+  addMesh(new THREE.BoxGeometry(4.4, 0.28, 3.6), stone, 0, -0.4, 0);
+  addMesh(new THREE.BoxGeometry(4.8, 0.1, 4.0), stone, 0, -0.54, 0);
 
-  const roofGeo=new THREE.ConeGeometry(2.25,.95,4,1);
-  const roof=addMesh(roofGeo,red,0,1.72,0); roof.rotation.y=Math.PI/4;
-  const d1=addMesh(new THREE.SphereGeometry(.76,.36,24,12),gold,0,2.2,0); d1.scale.y=.72;
-  addMesh(new THREE.CylinderGeometry(.05,.05,.45,12),gold,0,2.78,0);
+  // Steps on front
+  addMesh(new THREE.BoxGeometry(1.6, 0.12, 0.4), stone, 0, -0.46, 1.9);
+  addMesh(new THREE.BoxGeometry(1.8, 0.12, 0.4), stone, 0, -0.54, 2.05);
 
-  [-1.62,1.62].forEach(x=>{
-    const r=addMesh(new THREE.ConeGeometry(.48,.62,4),red,x,2.08,0); r.rotation.y=Math.PI/4;
-    const d=addMesh(new THREE.SphereGeometry(.33,.24,16,10),gold,x,2.36,0); d.scale.y=.75;
-    addMesh(new THREE.CylinderGeometry(.035,.035,.25,10),gold,x,2.64,0);
-    addMesh(new THREE.CapsuleGeometry(.17,.55,8,16),dark,x,.72,.6).rotation.x=0;
-  });
+  // 2. Main Central Building Body (3D Volume)
+  addMesh(new THREE.BoxGeometry(3.0, 1.6, 2.2), stone, 0, 0.5, 0);
 
-  const door=addMesh(new THREE.CylinderGeometry(.52,.52,1.25,32,1,false,0,Math.PI),dark,0,.18,.62);
-  door.rotation.z=Math.PI/2; door.scale.y=.9;
-  addMesh(new THREE.CircleGeometry(.40,32),warm,0,.3,.65).rotation.x=0;
+  // Second tier setback (upper story)
+  addMesh(new THREE.BoxGeometry(2.2, 0.9, 1.6), stone, 0, 1.75, 0);
 
-  [-.95,.95].forEach(x=>{
-    addMesh(new THREE.BoxGeometry(.36,.62,.08),dark,x,.62,.63);
-    addMesh(new THREE.BoxGeometry(.17,.36,.09),warm,x,.62,.69);
-  });
+  // 3. Central Grand Roof & Domes
+  const mainRoof = addMesh(new THREE.ConeGeometry(2.1, 0.85, 4, 1), red, 0, 2.58, 0);
+  mainRoof.rotation.y = Math.PI / 4;
 
-  for(let i=-3;i<=3;i++){
-    const c=addMesh(new THREE.CylinderGeometry(.025,.025,.55,6),gold,i*.45,1.18,.64);
-    c.rotation.z=Math.PI/2;
+  const mainDome = addMesh(new THREE.SphereGeometry(0.72, 32, 16), gold, 0, 3.1, 0);
+  mainDome.scale.y = 0.75;
+  addMesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45, 12), gold, 0, 3.7, 0);
+
+  // Upper gallery pillars
+  for(let i = -2; i <= 2; i++){
+    if(i !== 0){
+      const p1 = addMesh(new THREE.CylinderGeometry(0.035, 0.035, 0.8, 8), gold, i * 0.45, 1.75, 0.83);
+      const p2 = addMesh(new THREE.CylinderGeometry(0.035, 0.035, 0.8, 8), gold, i * 0.45, 1.75, -0.83);
+    }
   }
 
-  const ground=new THREE.Mesh(
-    new THREE.CircleGeometry(3.4,48),
-    new THREE.MeshStandardMaterial({color:0x171019,transparent:true,opacity:.32,roughness:1})
-  );
-  ground.rotation.x=-Math.PI/2; ground.position.y=-.58; group.add(ground);
+  // 4. Four Corner Minarets / Chhatris (360-degree 3D Depth)
+  const minaretCoords = [
+    [-1.5, -1.0], [1.5, -1.0],  // Front Left, Front Right
+    [-1.5,  1.0], [1.5,  1.0]   // Back Left, Back Right
+  ];
 
-  [-.9,0,.9].forEach(x=>{
-    const arch=addMesh(new THREE.TorusGeometry(.24,.045,8,24,Math.PI),gold,x,-.03,.69);
-    arch.rotation.z=Math.PI;
+  minaretCoords.forEach(([x, z]) => {
+    // Tower shaft
+    addMesh(new THREE.BoxGeometry(0.65, 2.4, 0.65), stone, x, 0.8, z);
+    // Tower roof canopy
+    const r = addMesh(new THREE.ConeGeometry(0.48, 0.55, 4), red, x, 2.25, z);
+    r.rotation.y = Math.PI / 4;
+    // Tower dome & pinnacle
+    const d = addMesh(new THREE.SphereGeometry(0.32, 20, 12), gold, x, 2.55, z);
+    d.scale.y = 0.75;
+    addMesh(new THREE.CylinderGeometry(0.03, 0.03, 0.35, 10), gold, x, 2.85, z);
+
+    // Arch balcony recesses on outer tower faces
+    addMesh(new THREE.BoxGeometry(0.32, 0.55, 0.1), dark, x, 1.1, z + (z > 0 ? 0.33 : -0.33));
+    addMesh(new THREE.BoxGeometry(0.1, 0.55, 0.32), dark, x + (x > 0 ? 0.33 : -0.33), 1.1, z);
   });
 
-  group.scale.setScalar(.95);
+  // 5. Entrances & Illuminated Windows on Front, Back & Sides
+  // Front Portal
+  const frontDoor = addMesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 32, 1, false, 0, Math.PI), dark, 0, 0.25, 1.12);
+  frontDoor.rotation.z = Math.PI / 2; frontDoor.scale.y = 0.85;
+  addMesh(new THREE.CircleGeometry(0.38, 32), warmLight, 0, 0.35, 1.13);
+
+  // Back Portal (so back side looks stunning when turned)
+  const backDoor = addMesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 32, 1, false, 0, Math.PI), dark, 0, 0.25, -1.12);
+  backDoor.rotation.z = Math.PI / 2; backDoor.rotation.y = Math.PI; backDoor.scale.y = 0.85;
+  addMesh(new THREE.CircleGeometry(0.38, 32), warmLight, 0, 0.35, -1.13).rotation.y = Math.PI;
+
+  // Front & Back Windows
+  [-0.85, 0.85].forEach(x => {
+    addMesh(new THREE.BoxGeometry(0.32, 0.55, 0.08), dark, x, 0.7, 1.12);
+    addMesh(new THREE.BoxGeometry(0.18, 0.35, 0.09), warmLight, x, 0.7, 1.14);
+
+    addMesh(new THREE.BoxGeometry(0.32, 0.55, 0.08), dark, x, 0.7, -1.12);
+    addMesh(new THREE.BoxGeometry(0.18, 0.35, 0.09), warmLight, x, 0.7, -1.14);
+  });
+
+  // Left & Right Side Windows
+  [-1.52, 1.52].forEach(x => {
+    addMesh(new THREE.BoxGeometry(0.08, 0.55, 0.4), dark, x, 0.7, 0);
+    addMesh(new THREE.BoxGeometry(0.09, 0.35, 0.22), warmLight, x, 0.7, 0);
+  });
+
+  // Decorative Jharokhas (Arched Torus Balconies)
+  [-0.8, 0, 0.8].forEach(x => {
+    const arch = addMesh(new THREE.TorusGeometry(0.22, 0.04, 8, 24, Math.PI), gold, x, 0.02, 1.15);
+    arch.rotation.z = Math.PI;
+  });
+
+  // Ground Shadow & Base Disc
+  const shadowGround = new THREE.Mesh(
+    new THREE.CircleGeometry(3.6, 48),
+    new THREE.MeshStandardMaterial({color: 0x0c0812, transparent: true, opacity: 0.55, roughness: 1.0})
+  );
+  shadowGround.rotation.x = -Math.PI / 2;
+  shadowGround.position.y = -0.59;
+  group.add(shadowGround);
+
+  // 6. Floating Sparkle Particles around the Palace
+  const particleGeo = new THREE.BufferGeometry();
+  const count = 75;
+  const posArray = new Float32Array(count * 3);
+  for(let i = 0; i < count * 3; i += 3){
+    posArray[i] = (Math.random() - 0.5) * 5.5;
+    posArray[i+1] = Math.random() * 4.2 - 0.5;
+    posArray[i+2] = (Math.random() - 0.5) * 4.5;
+  }
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+  const particleMat = new THREE.PointsMaterial({
+    size: 0.065,
+    color: 0xffe28a,
+    transparent: true,
+    opacity: 0.85
+  });
+  particles = new THREE.Points(particleGeo, particleMat);
+  group.add(particles);
+
+  // Scale & Position group so it pops up vertically on a flat surface
+  group.scale.setScalar(0.70);
+  group.position.set(0, -0.4, 0);
   scene.add(group);
 }
 
 function handleOrientation(e){
-  targetRY=Math.max(-.45,Math.min(.45,(e.gamma||0)*Math.PI/180*0.6));
-  targetRX=Math.max(-.25,Math.min(.25,((e.beta||0)-55)*Math.PI/180*0.25));
+  // Map device orientation tilt when phone is held or laid flat
+  targetRY = (e.gamma || 0) * Math.PI / 180 * 0.75;
+  targetRX = ((e.beta || 0) - 40) * Math.PI / 180 * 0.45;
 }
 
 async function requestDeviceSensors(){
@@ -172,29 +252,33 @@ async function requestDeviceSensors(){
 
 function initThree(){
   scene=new THREE.Scene();
-  camera3d=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.1,100);
-  camera3d.position.set(0,0.35,8.5);
-  renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  renderer.setSize(innerWidth,innerHeight);
+  
+  // High 3/4 perspective looking down at table surface (camera at y=3.4, looking down at y=0.5)
+  camera3d=new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 100);
+  camera3d.position.set(0, 3.4, 7.8);
+  camera3d.lookAt(0, 0.5, 0);
+
+  renderer=new THREE.WebGLRenderer({canvas, alpha: true, antialias: true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.shadowMap.enabled=true;
 
-  const hemi=new THREE.HemisphereLight(0xfff1d4,0x24192b,2.3);
+  const hemi=new THREE.HemisphereLight(0xfff3db, 0x24182b, 2.5);
   scene.add(hemi);
-  const key=new THREE.DirectionalLight(0xffe6b0,3.2);
-  key.position.set(-3,5,5); key.castShadow=true; scene.add(key);
-  const fill=new THREE.PointLight(0xb88cff,1.2,14); fill.position.set(3,1,3); scene.add(fill);
+  const key=new THREE.DirectionalLight(0xffe2a3, 3.5);
+  key.position.set(-3, 6, 5); key.castShadow=true; scene.add(key);
+  const fill=new THREE.PointLight(0xd1a3ff, 1.5, 14); fill.position.set(3, 2, 3); scene.add(fill);
 
-  buildPalace();
+  buildFull3DPalace();
 
-  window.addEventListener('resize',()=>{
+  window.addEventListener('resize', () => {
     camera3d.aspect=innerWidth/innerHeight;
     camera3d.updateProjectionMatrix();
-    renderer.setSize(innerWidth,innerHeight);
+    renderer.setSize(innerWidth, innerHeight);
   });
 
-  // Pointer drag fallback for desktop / touch interaction
+  // Touch / Pointer drag rotation controls
   window.addEventListener('pointerdown', (e) => {
     if (landing.style.display === 'none') {
       isDragging = true;
@@ -206,10 +290,9 @@ function initThree(){
     if (isDragging) {
       const deltaX = e.clientX - previousMouseX;
       const deltaY = e.clientY - previousMouseY;
-      targetRY += deltaX * 0.005;
+      targetRY += deltaX * 0.008;
       targetRX += deltaY * 0.005;
-      targetRX = Math.max(-0.4, Math.min(0.4, targetRX));
-      targetRY = Math.max(-0.8, Math.min(0.8, targetRY));
+      targetRX = Math.max(-0.6, Math.min(0.6, targetRX));
       previousMouseX = e.clientX;
       previousMouseY = e.clientY;
     }
@@ -220,20 +303,30 @@ function initThree(){
 
 function animate(){
   raf=requestAnimationFrame(animate);
-  currentRX += (targetRX-currentRX)*.06;
-  currentRY += (targetRY-currentRY)*.06;
+
+  // Smooth continuous 3D revolution around Y axis
+  autoRotateY += 0.0075;
+
+  currentRX += (targetRX - currentRX) * 0.06;
+  currentRY += (targetRY - currentRY) * 0.06;
+
   if(group){
-    group.rotation.x=currentRX+0.06;
-    group.rotation.y=currentRY+Math.sin(performance.now()/2200)*0.11;
-    group.position.y=Math.sin(performance.now()/1600)*.06;
+    // Revolving 3D movement + pitch for vertical table pop-out effect
+    group.rotation.y = autoRotateY + currentRY;
+    group.rotation.x = 0.28 + currentRX + Math.sin(performance.now()/2400) * 0.02;
+    group.position.y = -0.4 + Math.sin(performance.now()/1500) * 0.08;
   }
-  renderer.render(scene,camera3d);
+
+  if(particles){
+    particles.rotation.y = -autoRotateY * 0.5;
+  }
+
+  renderer.render(scene, camera3d);
 }
 
 async function startAR(){
   errorBox.style.display='none';
   
-  // Trigger sensor permission request (iOS Safari requires this on user tap)
   await requestDeviceSensors();
 
   try{
