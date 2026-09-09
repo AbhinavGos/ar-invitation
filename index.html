@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#100b16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Arjun & Anaya • AR Invitation Demo</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#100b16;color:#fff7ea;font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent}
+  body{touch-action:manipulation}
+  #camera{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#0d0a10;z-index:0;display:none;transform:scaleX(1)}
+  #veil{position:fixed;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.40),rgba(0,0,0,.04) 45%,rgba(0,0,0,.48));z-index:1;display:none;pointer-events:none}
+  #three{position:fixed;inset:0;z-index:3;display:none;touch-action:none}
+  #landing{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:28px;text-align:center;background:
+    radial-gradient(circle at 50% 20%,rgba(232,199,123,.2),transparent 28%),
+    linear-gradient(160deg,#140c1b,#28152f 55%,#100a15)}
+  .panel{max-width:520px;width:100%}
+  .eyebrow{text-transform:uppercase;letter-spacing:.28em;color:#ead391;font-size:11px}
+  h1{font-size:clamp(46px,12vw,80px);font-weight:500;line-height:.92;margin:16px 0 10px}
+  .sub{color:#d9cfbf;line-height:1.5;font-size:16px}
+  .btn{margin-top:24px;padding:15px 32px;border:1px solid rgba(232,199,123,.7);border-radius:999px;background:linear-gradient(135deg,#ead391,#c9a857);color:#271a1d;font-weight:700;letter-spacing:.03em;font-size:16px;cursor:pointer;box-shadow:0 8px 24px rgba(201,168,87,.25);transition:transform .15s ease,box-shadow .15s ease}
+  .btn:active{transform:scale(.97)}
+  .note{margin-top:16px;color:#a9a09a;font:12px/1.4 system-ui,-apple-system,sans-serif}
+  #ui{position:fixed;inset:0;z-index:8;display:none;pointer-events:none}
+  .topbar{position:absolute;top:env(safe-area-inset-top,18px);left:0;right:0;padding:18px 18px 0;display:flex;justify-content:space-between;align-items:flex-start}
+  .brand{font:11px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:.15em;text-transform:uppercase;color:#f5ddb2;text-shadow:0 2px 8px #000}
+  .close{pointer-events:auto;border:0;border-radius:50%;width:40px;height:40px;background:rgba(10,7,14,.65);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+  .caption{position:absolute;left:50%;bottom:max(26px,env(safe-area-inset-bottom,26px));transform:translateX(-50%);width:min(92%,560px);text-align:center;text-shadow:0 3px 16px #000}
+  .caption .small{font:11px system-ui,-apple-system,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#f0dba7}
+  .caption h2{font-size:clamp(28px,7vw,46px);font-weight:500;margin:7px 0 4px}
+  .caption p{margin:0 auto;color:#f1e6d6;font-size:14px;line-height:1.45}
+  .chips{display:flex;justify-content:center;gap:8px;margin-top:13px;flex-wrap:wrap}
+  .chip{font:12px system-ui,-apple-system,sans-serif;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,245,225,.35);background:rgba(15,10,17,.5);backdrop-filter:blur(6px)}
+  #error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:20;width:min(90%,430px);display:none;text-align:center;background:rgba(20,12,25,.96);padding:24px;border-radius:20px;border:1px solid rgba(232,199,123,.35);box-shadow:0 12px 32px rgba(0,0,0,.6)}
+  #error h3{margin:0 0 10px;font-size:24px;font-weight:500;color:#f5ddb2}
+  #error p{margin:0 0 16px;color:#cfc5b7;font:14px/1.5 system-ui,-apple-system,sans-serif}
+  #error .retry-btn{padding:10px 20px;border-radius:999px;border:1px solid rgba(232,199,123,.6);background:rgba(232,199,123,.15);color:#ead391;font:13px/1 system-ui,sans-serif;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="landing">
+  <div class="panel">
+    <div class="eyebrow">A wedding invitation · AR demo</div>
+    <h1>Arjun<br>&amp; Anaya</h1>
+    <div class="sub">Tap below and the invitation turns into an augmented-reality experience using your phone's camera.</div>
+    <button class="btn" id="start">Open in AR</button>
+    <div class="note">Tap Open in AR and your browser will ask for camera permission. Allow Camera to start the experience.</div>
+  </div>
+</div>
+
+<video id="camera" autoplay playsinline muted></video>
+<div id="veil"></div>
+<canvas id="three"></canvas>
+
+<div id="ui">
+  <div class="topbar">
+    <div class="brand">Arjun &amp; Anaya · 21.02.27</div>
+    <button class="close" id="close" aria-label="Close AR mode">×</button>
+  </div>
+  <div class="caption">
+    <div class="small">You are invited</div>
+    <h2>Celebrate with us</h2>
+    <p>Imagine this royal palace rising from the printed invitation. In the final version, the 3D scene would lock to the card artwork.</p>
+    <div class="chips"><span class="chip">City Palace · Jaipur</span><span class="chip">Sunday · 7:00 PM</span></div>
+  </div>
+</div>
+
+<div id="error">
+  <h3>Camera could not start</h3>
+  <p id="errorText">Please open this page from an HTTPS website and allow camera access.</p>
+  <button class="retry-btn" id="dismissError">Dismiss</button>
+</div>
+
+<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.186.0/build/three.module.js';
+
+const landing=document.getElementById('landing');
+const camera=document.getElementById('camera');
+const veil=document.getElementById('veil');
+const canvas=document.getElementById('three');
+const ui=document.getElementById('ui');
+const errorBox=document.getElementById('error');
+const errorText=document.getElementById('errorText');
+const dismissError=document.getElementById('dismissError');
+
+let stream=null, raf=0;
+let scene,camera3d,renderer,group;
+let targetRX=0,targetRY=0,currentRX=0,currentRY=0;
+let isDragging=false, previousMouseX=0, previousMouseY=0;
+
+function addMesh(geo,mat,x,y,z){
+  const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); group.add(m); return m;
+}
+
+function buildPalace(){
+  group=new THREE.Group();
+
+  const stone=new THREE.MeshStandardMaterial({color:0xe8d8b7,roughness:.72,metalness:.08});
+  const gold=new THREE.MeshStandardMaterial({color:0xe9c86f,roughness:.4,metalness:.38});
+  const red=new THREE.MeshStandardMaterial({color:0x9e303b,roughness:.6});
+  const dark=new THREE.MeshStandardMaterial({color:0x2b1c2a,roughness:.8});
+  const warm=new THREE.MeshStandardMaterial({color:0xffd983,emissive:0x8a5a19,emissiveIntensity:.8});
+
+  addMesh(new THREE.BoxGeometry(3.8,1.8,1.15),stone,0,.35,0);
+  addMesh(new THREE.BoxGeometry(.72,2.4,1.35),stone,-1.62,.65,0);
+  addMesh(new THREE.BoxGeometry(.72,2.4,1.35),stone,1.62,.65,0);
+
+  const roofGeo=new THREE.ConeGeometry(2.25,.95,4,1);
+  const roof=addMesh(roofGeo,red,0,1.72,0); roof.rotation.y=Math.PI/4;
+  const d1=addMesh(new THREE.SphereGeometry(.76,.36,24,12),gold,0,2.2,0); d1.scale.y=.72;
+  addMesh(new THREE.CylinderGeometry(.05,.05,.45,12),gold,0,2.78,0);
+
+  [-1.62,1.62].forEach(x=>{
+    const r=addMesh(new THREE.ConeGeometry(.48,.62,4),red,x,2.08,0); r.rotation.y=Math.PI/4;
+    const d=addMesh(new THREE.SphereGeometry(.33,.24,16,10),gold,x,2.36,0); d.scale.y=.75;
+    addMesh(new THREE.CylinderGeometry(.035,.035,.25,10),gold,x,2.64,0);
+    addMesh(new THREE.CapsuleGeometry(.17,.55,8,16),dark,x,.72,.6).rotation.x=0;
+  });
+
+  const door=addMesh(new THREE.CylinderGeometry(.52,.52,1.25,32,1,false,0,Math.PI),dark,0,.18,.62);
+  door.rotation.z=Math.PI/2; door.scale.y=.9;
+  addMesh(new THREE.CircleGeometry(.40,32),warm,0,.3,.65).rotation.x=0;
+
+  [-.95,.95].forEach(x=>{
+    addMesh(new THREE.BoxGeometry(.36,.62,.08),dark,x,.62,.63);
+    addMesh(new THREE.BoxGeometry(.17,.36,.09),warm,x,.62,.69);
+  });
+
+  for(let i=-3;i<=3;i++){
+    const c=addMesh(new THREE.CylinderGeometry(.025,.025,.55,6),gold,i*.45,1.18,.64);
+    c.rotation.z=Math.PI/2;
+  }
+
+  const ground=new THREE.Mesh(
+    new THREE.CircleGeometry(3.4,48),
+    new THREE.MeshStandardMaterial({color:0x171019,transparent:true,opacity:.32,roughness:1})
+  );
+  ground.rotation.x=-Math.PI/2; ground.position.y=-.58; group.add(ground);
+
+  [-.9,0,.9].forEach(x=>{
+    const arch=addMesh(new THREE.TorusGeometry(.24,.045,8,24,Math.PI),gold,x,-.03,.69);
+    arch.rotation.z=Math.PI;
+  });
+
+  group.scale.setScalar(.95);
+  scene.add(group);
+}
+
+function handleOrientation(e){
+  targetRY=Math.max(-.45,Math.min(.45,(e.gamma||0)*Math.PI/180*0.6));
+  targetRX=Math.max(-.25,Math.min(.25,((e.beta||0)-55)*Math.PI/180*0.25));
+}
+
+async function requestDeviceSensors(){
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      const state = await DeviceOrientationEvent.requestPermission();
+      if (state === 'granted') {
+        window.addEventListener('deviceorientation', handleOrientation, true);
+      }
+    } catch(err){
+      console.warn('Orientation permission error:', err);
+    }
+  } else if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', handleOrientation, true);
+  }
+}
+
+function initThree(){
+  scene=new THREE.Scene();
+  camera3d=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.1,100);
+  camera3d.position.set(0,0.35,8.5);
+  renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.shadowMap.enabled=true;
+
+  const hemi=new THREE.HemisphereLight(0xfff1d4,0x24192b,2.3);
+  scene.add(hemi);
+  const key=new THREE.DirectionalLight(0xffe6b0,3.2);
+  key.position.set(-3,5,5); key.castShadow=true; scene.add(key);
+  const fill=new THREE.PointLight(0xb88cff,1.2,14); fill.position.set(3,1,3); scene.add(fill);
+
+  buildPalace();
+
+  window.addEventListener('resize',()=>{
+    camera3d.aspect=innerWidth/innerHeight;
+    camera3d.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+
+  // Pointer drag fallback for desktop / touch interaction
+  window.addEventListener('pointerdown', (e) => {
+    if (landing.style.display === 'none') {
+      isDragging = true;
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    }
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (isDragging) {
+      const deltaX = e.clientX - previousMouseX;
+      const deltaY = e.clientY - previousMouseY;
+      targetRY += deltaX * 0.005;
+      targetRX += deltaY * 0.005;
+      targetRX = Math.max(-0.4, Math.min(0.4, targetRX));
+      targetRY = Math.max(-0.8, Math.min(0.8, targetRY));
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    }
+  });
+  window.addEventListener('pointerup', () => { isDragging = false; });
+  window.addEventListener('pointercancel', () => { isDragging = false; });
+}
+
+function animate(){
+  raf=requestAnimationFrame(animate);
+  currentRX += (targetRX-currentRX)*.06;
+  currentRY += (targetRY-currentRY)*.06;
+  if(group){
+    group.rotation.x=currentRX+0.06;
+    group.rotation.y=currentRY+Math.sin(performance.now()/2200)*0.11;
+    group.position.y=Math.sin(performance.now()/1600)*.06;
+  }
+  renderer.render(scene,camera3d);
+}
+
+async function startAR(){
+  errorBox.style.display='none';
+  
+  // Trigger sensor permission request (iOS Safari requires this on user tap)
+  await requestDeviceSensors();
+
+  try{
+    if(!window.isSecureContext) throw new Error('Camera access requires HTTPS. Open this invitation from your GitHub Pages HTTPS URL.');
+    if(!navigator.mediaDevices?.getUserMedia) throw new Error('This browser does not support camera access. Please use Safari or Chrome on your mobile device.');
+
+    if (navigator.permissions?.query) {
+      try {
+        const permission = await navigator.permissions.query({name:'camera'});
+        if (permission.state === 'denied') {
+          throw new Error('Camera permission is blocked for this site. Open your browser site settings and allow Camera, then reload this page.');
+        }
+      } catch (e) {
+        if (e?.message?.startsWith('Camera permission is blocked')) throw e;
+      }
+    }
+
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},
+      audio:false
+    });
+    camera.srcObject=stream;
+    await camera.play();
+
+    landing.style.display='none';
+    camera.style.display='block';
+    veil.style.display='block';
+    canvas.style.display='block';
+    ui.style.display='block';
+
+    if(!renderer) initThree();
+    animate();
+  }catch(err){
+    errorText.textContent=err?.message||'Please allow camera access and try again.';
+    errorBox.style.display='block';
+  }
+}
+
+function closeAR(){
+  cancelAnimationFrame(raf);
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  camera.srcObject=null;
+  landing.style.display='flex';
+  camera.style.display='none'; veil.style.display='none'; canvas.style.display='none'; ui.style.display='none';
+}
+
+document.getElementById('start').onclick=startAR;
+document.getElementById('close').onclick=closeAR;
+dismissError.onclick=()=>{ errorBox.style.display='none'; };
+</script>
+</body>
+</html>
