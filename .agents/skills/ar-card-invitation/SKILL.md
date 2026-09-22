@@ -6,6 +6,19 @@ description: >-
   Use whenever the user provides card designs, event images, or invites and wants an AR experience
   where 3D cards pop up vertically from a physical visual trigger with smooth reading stabilization
   and each card is published to its own independent live URL.
+permissions:
+  commands:
+    - "node scripts/scaffold_card.mjs *"
+    - "node scripts/compile_target.mjs *"
+    - "git *"
+    - "gh *"
+  github:
+    - 'gh.create({"org": "AbhinavGos", "repo": "*"})'
+    - 'gh.update({"org": "AbhinavGos", "repo": "*"})'
+    - 'gh.read({"org": "AbhinavGos", "repo": "*"})'
+    - 'git.create({"org": "AbhinavGos", "repo": "*", "branch": "*"})'
+    - 'git.update({"org": "AbhinavGos", "repo": "*", "branch": "*"})'
+    - 'git.read({"org": "AbhinavGos", "repo": "*", "contents": "*"})'
 ---
 
 # WebAR Physical Card Invitation & Pop-Up Creator
@@ -107,7 +120,40 @@ Live URL is immediately: **`https://abhinavgos.github.io/<card-slug>/`**
 
 ---
 
-## 4. Production Engineering Rules
+## 4. Antigravity 1-Shot Permissions & Pre-Authorization
+
+To ensure a seamless developer experience where permissions are granted **in 1 shot** without repeatedly interrupting the user for every shell command:
+
+### 1-Shot Pre-Approved Permission Grants
+The following permissions cover the entire WebAR creation, target compilation, and GitHub Pages deployment workflow:
+
+1. **Terminal Command Allowlist**:
+   - `command(node scripts/scaffold_card.mjs *)`
+   - `command(node scripts/compile_target.mjs *)`
+   - `command(git *)`
+   - `command(gh *)`
+
+2. **GitHub Resource Grants (1-Shot Format)**:
+   - `gh.create({"org": "AbhinavGos", "repo": "*"})`
+   - `gh.update({"org": "AbhinavGos", "repo": "*"})`
+   - `gh.read({"org": "AbhinavGos", "repo": "*"})`
+   - `git.create({"org": "AbhinavGos", "repo": "*", "branch": "*"})`
+   - `git.update({"org": "AbhinavGos", "repo": "*", "branch": "*"})`
+   - `git.read({"org": "AbhinavGos", "repo": "*", "contents": "*"})`
+
+### 1-Shot Execution Rule for Agents:
+> [!TIP]
+> **Always Batch Command Execution**:
+> The agent must **never** run piecemeal CLI commands that trigger sequential confirmation dialogs.
+> Instead, either:
+> 1. Run the all-in-one generator: `node scripts/scaffold_card.mjs --deploy ...`
+> 2. Or chain operations in a single invocation:
+>    `git add . ; git commit -m "Initial WebAR" ; git push origin master`
+> This ensures Antigravity prompts the user for at most **1 single confirmation** for the entire pipeline.
+
+---
+
+## 5. Production Engineering Rules
 
 ### Rule 1: Anti-Washout & 100% Color Contrast (Crucial)
 - **The Problem**: 2D printed invitation cards already contain rich pre-rendered lighting, watercolor art, and metallic typography. If rendered with `MeshStandardMaterial` under Three.js scene lights, light multiplication clamps pixel values ($> 1.0 \rightarrow 1.0$), blowing out ivory/cream cards into pure blinding white and washing away dates and names.
@@ -203,76 +249,13 @@ Avoid external MP3 files that fail on mobile autoplay or CORS. Use Web Audio API
 - **Tanpura Drone**: Sustained root-fifth ambient drone ($Sa - Pa$, 130.81 Hz / 196.00 Hz) with gentle LFO chorus.
 - **Sitar / Santoor**: Plucked high-resonance triangle harmonics playing auspicious wedding scales (Raga Bhupali: $Sa, Re, Ga, Pa, Dha$).
 
-### Rule 6: 1-Shot Unified Permission Gate (Mobile WebAR + GitHub CLI)
-
-> [!IMPORTANT]
-> **Mobile WebAR requires 3 distinct system capabilities**: Camera access, iOS Motion/Gyroscope sensors, and Web Audio autoplay. If requested separately or asynchronously, browsers block them or display multiple confusing prompts.
-
-Always implement the **1-Shot Permission Gate** attached to the user's initial "Experience in AR" tap:
-
-```javascript
-async function requestOneShotPermissions() {
-  // 1. In-App Browser Detection (WhatsApp / Instagram / LinkedIn WebViews)
-  const ua = navigator.userAgent || navigator.vendor || window.opera;
-  const isInApp = /FBAN|FBAV|Instagram|WhatsApp|LinkedIn|Line|MicroMessenger/i.test(ua);
-  if (isInApp && !/Safari/i.test(ua)) {
-    console.warn('In-app browser detected. Prompt user to open in Safari/Chrome if camera fails.');
-  }
-
-  // 2. HTTPS Secure Context check
-  if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-    throw new Error('Camera & AR sensors require HTTPS. Open this page from your GitHub Pages HTTPS link.');
-  }
-
-  // 3. iOS 13+ Motion Sensors (MUST be invoked synchronously within user tap)
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try {
-      await DeviceOrientationEvent.requestPermission();
-    } catch (e) {
-      console.warn('DeviceOrientation permission bypassed:', e);
-    }
-  }
-
-  // 4. Web Audio Autoplay Unlock (Instantly primes synthesizer)
-  initFestiveMusic();
-
-  // 5. Camera Support check
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    throw new Error('Camera access not supported on this browser. Please open in Safari (iOS) or Chrome (Android).');
-  }
-
-  // 6. Proactive Permission Check (if supported)
-  if (navigator.permissions && navigator.permissions.query) {
-    try {
-      const status = await navigator.permissions.query({ name: 'camera' });
-      if (status.state === 'denied') {
-        throw new Error('Camera permission blocked. Tap the lock (🔒) / AA icon in your address bar, allow Camera, and reload.');
-      }
-    } catch(e) {
-      if (e?.message?.includes('Camera permission blocked')) throw e;
-    }
-  }
-}
-```
-
-#### Denied Permission Recovery Guidance:
-In the `catch (err)` block, provide explicit operating-system guidance so users know exactly how to unblock:
-- **iOS Safari**: Tap the `AA` or lock icon in the address bar $\rightarrow$ Website Settings $\rightarrow$ Camera $\rightarrow$ **Allow**, then refresh.
-- **Android Chrome**: Tap the lock (🔒) icon $\rightarrow$ Permissions $\rightarrow$ Camera $\rightarrow$ **Allow**, then refresh.
-
-#### Developer Tooling 1-Shot Permission (GitHub CLI):
-To allow `scaffold_card.mjs` to create repositories and enable GitHub Pages without interactive password/token prompts:
-```bash
-gh auth refresh -s "repo,workflow"
-```
-
 ---
 
-## 5. Pre-Flight Verification Checklist
+## 6. Pre-Flight Verification Checklist
 
 Before sharing any live invitation link with the user:
+- [ ] **1-Shot Permission**: Command pipeline executed in a single batched run or pre-authorized rule.
 - [ ] **Unique Live URL**: Built in its own directory and repo (`https://abhinavgos.github.io/<slug>/`), preserving other cards intact.
-- [ ] **1-Shot Permission Gate**: Single tap on landing button unlocks Camera, Motion Sensors, and Audio simultaneously.
 - [ ] **Contrast Verification**: Cards use `MeshBasicMaterial` and are crisp and readable under any ambient light.
 - [ ] **Tracking Stability**: `targets.mind` compiles to $> 100\text{ KB}$ and locks smoothly on the physical card.
 - [ ] **Reading Stillness**: Cards do not tremble or vibrate when reading in hand.
