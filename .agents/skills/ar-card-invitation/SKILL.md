@@ -203,12 +203,76 @@ Avoid external MP3 files that fail on mobile autoplay or CORS. Use Web Audio API
 - **Tanpura Drone**: Sustained root-fifth ambient drone ($Sa - Pa$, 130.81 Hz / 196.00 Hz) with gentle LFO chorus.
 - **Sitar / Santoor**: Plucked high-resonance triangle harmonics playing auspicious wedding scales (Raga Bhupali: $Sa, Re, Ga, Pa, Dha$).
 
+### Rule 6: 1-Shot Unified Permission Gate (Mobile WebAR + GitHub CLI)
+
+> [!IMPORTANT]
+> **Mobile WebAR requires 3 distinct system capabilities**: Camera access, iOS Motion/Gyroscope sensors, and Web Audio autoplay. If requested separately or asynchronously, browsers block them or display multiple confusing prompts.
+
+Always implement the **1-Shot Permission Gate** attached to the user's initial "Experience in AR" tap:
+
+```javascript
+async function requestOneShotPermissions() {
+  // 1. In-App Browser Detection (WhatsApp / Instagram / LinkedIn WebViews)
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const isInApp = /FBAN|FBAV|Instagram|WhatsApp|LinkedIn|Line|MicroMessenger/i.test(ua);
+  if (isInApp && !/Safari/i.test(ua)) {
+    console.warn('In-app browser detected. Prompt user to open in Safari/Chrome if camera fails.');
+  }
+
+  // 2. HTTPS Secure Context check
+  if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    throw new Error('Camera & AR sensors require HTTPS. Open this page from your GitHub Pages HTTPS link.');
+  }
+
+  // 3. iOS 13+ Motion Sensors (MUST be invoked synchronously within user tap)
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      await DeviceOrientationEvent.requestPermission();
+    } catch (e) {
+      console.warn('DeviceOrientation permission bypassed:', e);
+    }
+  }
+
+  // 4. Web Audio Autoplay Unlock (Instantly primes synthesizer)
+  initFestiveMusic();
+
+  // 5. Camera Support check
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('Camera access not supported on this browser. Please open in Safari (iOS) or Chrome (Android).');
+  }
+
+  // 6. Proactive Permission Check (if supported)
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const status = await navigator.permissions.query({ name: 'camera' });
+      if (status.state === 'denied') {
+        throw new Error('Camera permission blocked. Tap the lock (🔒) / AA icon in your address bar, allow Camera, and reload.');
+      }
+    } catch(e) {
+      if (e?.message?.includes('Camera permission blocked')) throw e;
+    }
+  }
+}
+```
+
+#### Denied Permission Recovery Guidance:
+In the `catch (err)` block, provide explicit operating-system guidance so users know exactly how to unblock:
+- **iOS Safari**: Tap the `AA` or lock icon in the address bar $\rightarrow$ Website Settings $\rightarrow$ Camera $\rightarrow$ **Allow**, then refresh.
+- **Android Chrome**: Tap the lock (🔒) icon $\rightarrow$ Permissions $\rightarrow$ Camera $\rightarrow$ **Allow**, then refresh.
+
+#### Developer Tooling 1-Shot Permission (GitHub CLI):
+To allow `scaffold_card.mjs` to create repositories and enable GitHub Pages without interactive password/token prompts:
+```bash
+gh auth refresh -s "repo,workflow"
+```
+
 ---
 
 ## 5. Pre-Flight Verification Checklist
 
 Before sharing any live invitation link with the user:
 - [ ] **Unique Live URL**: Built in its own directory and repo (`https://abhinavgos.github.io/<slug>/`), preserving other cards intact.
+- [ ] **1-Shot Permission Gate**: Single tap on landing button unlocks Camera, Motion Sensors, and Audio simultaneously.
 - [ ] **Contrast Verification**: Cards use `MeshBasicMaterial` and are crisp and readable under any ambient light.
 - [ ] **Tracking Stability**: `targets.mind` compiles to $> 100\text{ KB}$ and locks smoothly on the physical card.
 - [ ] **Reading Stillness**: Cards do not tremble or vibrate when reading in hand.

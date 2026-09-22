@@ -546,6 +546,55 @@ function toggleAudio() {
 }
 
 // ----------------------------------------------------
+// 1-Shot Unified Permission Gate
+// Unlocks Camera, Motion Sensors (iOS 13+), and Web Audio
+// in a single user tap on the entry button.
+// ----------------------------------------------------
+async function requestOneShotPermissions() {
+  // 1. In-App Browser Detection (WhatsApp, Instagram, LinkedIn WebViews)
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const isInApp = /FBAN|FBAV|Instagram|WhatsApp|LinkedIn|Line|MicroMessenger/i.test(ua);
+  if (isInApp && !/Safari/i.test(ua)) {
+    console.warn('In-app browser detected. Camera or sensors might be restricted.');
+  }
+
+  // 2. HTTPS Secure Context check
+  if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    throw new Error('Camera and AR sensors require HTTPS. Please open from your GitHub Pages HTTPS link.');
+  }
+
+  // 3. Motion & Orientation Sensors for iOS 13+ (must be synchronously invoked during user gesture)
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      const state = await DeviceOrientationEvent.requestPermission();
+      console.log('iOS DeviceOrientation permission state:', state);
+    } catch (sensorErr) {
+      console.warn('DeviceOrientation permission dismissed or error:', sensorErr);
+    }
+  }
+
+  // 4. Web Audio Autoplay Unlock (Instantly activates Indian classical synthesizer)
+  initFestiveMusic();
+
+  // 5. Camera Support check
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('Camera access is not supported by this browser. Please open in Safari (iOS) or Chrome (Android).');
+  }
+
+  // 6. Proactive Camera Permission query if supported
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const camStatus = await navigator.permissions.query({ name: 'camera' });
+      if (camStatus.state === 'denied') {
+        throw new Error('Camera permission is blocked. Tap the lock (🔒) or AA icon in your address bar, set Camera to "Allow", and reload.');
+      }
+    } catch(e) {
+      if (e?.message?.includes('Camera permission is blocked')) throw e;
+    }
+  }
+}
+
+// ----------------------------------------------------
 // Card-Anchored AR Launcher
 // ----------------------------------------------------
 async function startCardAnchoredAR() {
@@ -553,13 +602,14 @@ async function startCardAnchoredAR() {
   loadingView.style.display = 'flex';
   loadStatus.textContent = 'Starting Camera & Card Tracker...';
 
-  initFestiveMusic();
-
-  // Bug 1 fix: arContainer must be visible BEFORE MindARThree is created
-  // so it can correctly measure the viewport size for its internal canvas/video.
-  arContainer.style.display = 'block';
-
   try {
+    // 1-Shot Permission Gate: unlocks audio, motion, and camera in one gesture
+    await requestOneShotPermissions();
+
+    // Bug 1 fix: arContainer must be visible BEFORE MindARThree is created
+    // so it can correctly measure the viewport size for its internal canvas/video.
+    arContainer.style.display = 'block';
+
     mindarThree = new MindARThree({
       container: arContainer,
       imageTargetSrc: './targets.mind',
@@ -719,7 +769,11 @@ async function startCardAnchoredAR() {
     console.error('AR Tracker Error:', err);
     loadingView.style.display = 'none';
     arContainer.style.display = 'none'; // hide since start failed
-    errorText.textContent = err?.message || 'Could not start camera or AR tracking.';
+    let msg = err?.message || 'Could not start camera or AR tracking.';
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || msg.toLowerCase().includes('permission')) {
+      msg = '📷 Camera permission needed: Please allow camera access when prompted, or tap the lock (🔒) / AA icon in your browser address bar -> Permissions -> Allow Camera, then refresh this page.';
+    }
+    errorText.textContent = msg;
     errorBox.style.display = 'block';
   }
 }
