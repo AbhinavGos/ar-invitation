@@ -13,6 +13,11 @@ function parseArgs() {
     slug: '',
     target: '',
     cards: [],
+    theme: 'royal-wedding',      // royal-wedding | haldi-garden | cocktail-glam | corporate-summit | minimal-luxury
+    layout: 'hybrid',            // carousel | triptych | diorama | popout | hybrid
+    silhouette: 'arch',          // arch | scalloped | chamfer | deckled | portal | rect
+    depth: 'gold-foil',          // gold-foil | silver-chrome | paper-matte | neon-glow | flat
+    anchor: 'back-edge',         // back-edge | center | offset
     outDir: '',
     deploy: false
   };
@@ -23,8 +28,32 @@ function parseArgs() {
     else if (arg === '--slug' && args[i + 1]) params.slug = args[++i];
     else if (arg === '--target' && args[i + 1]) params.target = args[++i];
     else if (arg === '--cards' && args[i + 1]) params.cards = args[++i].split(',').map(s => s.trim());
+    else if (arg === '--theme' && args[i + 1]) params.theme = args[++i];
+    else if (arg === '--layout' && args[i + 1]) params.layout = args[++i];
+    else if (arg === '--silhouette' && args[i + 1]) params.silhouette = args[++i];
+    else if (arg === '--depth' && args[i + 1]) params.depth = args[++i];
+    else if (arg === '--anchor' && args[i + 1]) params.anchor = args[++i];
     else if (arg === '--outDir' && args[i + 1]) params.outDir = args[++i];
     else if (arg === '--deploy') params.deploy = true;
+  }
+
+  // Smart defaults based on theme if not explicitly set
+  if (params.theme === 'cocktail-glam') {
+    if (!args.includes('--silhouette')) params.silhouette = 'chamfer';
+    if (!args.includes('--depth')) params.depth = 'silver-chrome';
+    if (!args.includes('--layout')) params.layout = 'hybrid';
+  } else if (params.theme === 'haldi-garden') {
+    if (!args.includes('--silhouette')) params.silhouette = 'scalloped';
+    if (!args.includes('--depth')) params.depth = 'paper-matte';
+    if (!args.includes('--layout')) params.layout = 'triptych';
+  } else if (params.theme === 'corporate-summit') {
+    if (!args.includes('--silhouette')) params.silhouette = 'chamfer';
+    if (!args.includes('--depth')) params.depth = 'silver-chrome';
+    if (!args.includes('--layout')) params.layout = 'carousel';
+  } else if (params.theme === 'minimal-luxury') {
+    if (!args.includes('--silhouette')) params.silhouette = 'deckled';
+    if (!args.includes('--depth')) params.depth = 'paper-matte';
+    if (!args.includes('--layout')) params.layout = 'hybrid';
   }
 
   if (!params.slug) {
@@ -44,14 +73,19 @@ function parseArgs() {
 async function main() {
   const params = parseArgs();
   console.log(`\n======================================================`);
-  console.log(`🎴 AR Card Invitation Project Generator`);
+  console.log(`🎴 Universal WebAR Card Experience Generator`);
   console.log(`======================================================`);
-  console.log(`Name    : ${params.name}`);
-  console.log(`Slug    : ${params.slug}`);
-  console.log(`OutDir  : ${params.outDir}`);
-  console.log(`Target  : ${params.target || '(none provided, using placeholder)'}`);
-  console.log(`Cards   : ${params.cards.length ? params.cards.join(', ') : '(procedural fallback)'}`);
-  console.log(`Deploy  : ${params.deploy ? 'Yes (Auto GitHub Pages)' : 'No (Local scaffolding only)'}`);
+  console.log(`Name       : ${params.name}`);
+  console.log(`Slug       : ${params.slug}`);
+  console.log(`Theme      : ${params.theme}`);
+  console.log(`Layout     : ${params.layout} (carousel | triptych | diorama | popout | hybrid)`);
+  console.log(`Silhouette : ${params.silhouette} (arch | scalloped | chamfer | deckled | portal | rect)`);
+  console.log(`Depth      : ${params.depth} (gold-foil | silver-chrome | paper-matte | neon-glow | flat)`);
+  console.log(`Anchor     : ${params.anchor} (back-edge | center | offset)`);
+  console.log(`OutDir     : ${params.outDir}`);
+  console.log(`Target     : ${params.target || '(none provided, placeholder)'}`);
+  console.log(`Cards      : ${params.cards.length ? params.cards.join(', ') : '(procedural fallback)'}`);
+  console.log(`Deploy     : ${params.deploy ? 'Yes (Auto GitHub Pages)' : 'No (Local scaffolding only)'}`);
   console.log(`------------------------------------------------------\n`);
 
   fs.mkdirSync(params.outDir, { recursive: true });
@@ -63,9 +97,8 @@ async function main() {
   }
   let indexHtml = fs.readFileSync(templatePath, 'utf8');
 
-  // Customize page title and headers
+  // Customize page title and meta
   indexHtml = indexHtml.replace(/<title>.*?<\/title>/, `<title>${params.name} · Interactive WebAR Experience</title>`);
-  indexHtml = indexHtml.replace(/<div class="landing-names">.*?<\/div>/, `<div class="landing-names">${params.name}</div>`);
 
   // 2. Handle Target Card and Targets.mind
   if (params.target && fs.existsSync(params.target)) {
@@ -88,66 +121,55 @@ async function main() {
     console.log(`ℹ️ No target image supplied. Place your visual trigger as target_card.png and run compile_target.mjs.`);
   }
 
-  // 3. Handle Card Content Images
+  // 3. Handle Card Content Images & Build Card Config
+  const cardObjects = [];
   if (params.cards && params.cards.length > 0) {
-    const copiedCardNames = [];
     params.cards.forEach((cardPath, idx) => {
       if (fs.existsSync(cardPath)) {
         const ext = path.extname(cardPath) || '.jpg';
         const cardName = `card_${idx + 1}${ext}`;
         fs.copyFileSync(cardPath, path.join(params.outDir, cardName));
-        copiedCardNames.push(`./${cardName}`);
+        cardObjects.push({
+          url: `./${cardName}`,
+          title: `Ceremony ${idx + 1}`,
+          date: `Event ${idx + 1}`,
+          color: (idx === 0) ? '#f59e0b' : (idx === 1) ? '#eab308' : '#dc2626'
+        });
       }
     });
-
-    if (copiedCardNames.length > 0) {
-      console.log(`✅ Copied ${copiedCardNames.length} custom event cards.`);
-      // Inject custom cards array into index.html
-      const cardUrlsJson = JSON.stringify(copiedCardNames);
-      const customCardLoader = `
-    // Custom Uploaded Content Cards (${copiedCardNames.length} cards)
-    const cardImageUrls = ${cardUrlsJson};
-    const cardGeo = new THREE.PlaneGeometry(0.74, 1.146);
-    cardGeo.translate(0, 1.146 / 2, 0); // Bottom edge rests on pedestal
-
-    const texLoader = new THREE.TextureLoader();
-    cardMeshes = [];
-    cardImageUrls.forEach((url, i) => {
-      const tex = texLoader.load(url);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      const mat = new THREE.MeshBasicMaterial({
-        map: tex,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: (i === 0) ? 1.0 : 0.55
-      });
-      const mesh = new THREE.Mesh(cardGeo, mat);
-      mesh.position.set(0, 0, 0);
-      mesh.userData = { index: i };
-      cardsCarouselGroup.add(mesh);
-      cardMeshes.push(mesh);
-    });
-      `;
-      // Replace the procedural types.forEach loop
-      indexHtml = indexHtml.replace(
-        /\/\/ Build 3 Event Cards with bottom pivot[\s\S]*?cardMeshes\.push\(mesh\);\s*\}\);/,
-        customCardLoader.trim()
-      );
-    }
+    console.log(`✅ Copied ${cardObjects.length} custom event cards.`);
   }
+
+  // 4. Inject Dynamic AR_CONFIG Object into index.html
+  const injectedConfig = {
+    name: params.name,
+    theme: params.theme,
+    layout: params.layout,
+    silhouette: params.silhouette,
+    depth: params.depth,
+    anchorPosition: params.anchor,
+    cards: cardObjects.length > 0 ? cardObjects : [
+      { title: "Welcome & Mehndi", date: "Day 1 · Evening", color: "#f59e0b", type: "mehndi" },
+      { title: "Auspicious Haldi", date: "Day 2 · Morning", color: "#eab308", type: "haldi" },
+      { title: "Wedding & Reception", date: "Day 2 · Night", color: "#dc2626", type: "wedding" }
+    ]
+  };
+
+  const configScript = `<script>window.AR_CONFIG = ${JSON.stringify(injectedConfig, null, 2)};</script>`;
+  indexHtml = indexHtml.replace('</head>', `${configScript}\n</head>`);
 
   // Save generated index.html
   const destIndexHtml = path.join(params.outDir, 'index.html');
   fs.writeFileSync(destIndexHtml, indexHtml, 'utf8');
   console.log(`✅ Saved customized index.html`);
 
-  // 4. Git & GitHub Pages Auto-Deploy
+  // 5. Git & GitHub Pages Auto-Deploy
   if (params.deploy) {
     console.log(`\n🚀 Initializing Git repository and deploying to GitHub Pages...`);
     try {
       execSync(`git init`, { cwd: params.outDir, stdio: 'inherit' });
       execSync(`git add .`, { cwd: params.outDir, stdio: 'inherit' });
-      execSync(`git commit -m "Initial WebAR Card Invitation: ${params.name}"`, { cwd: params.outDir, stdio: 'inherit' });
+      execSync(`git commit -m "Initial WebAR Card: ${params.name}"`, { cwd: params.outDir, stdio: 'inherit' });
       
       console.log(`📡 Creating remote GitHub repository: AbhinavGos/${params.slug}...`);
       execSync(`gh repo create AbhinavGos/${params.slug} --public --source=. --push`, { cwd: params.outDir, stdio: 'inherit' });
@@ -156,7 +178,6 @@ async function main() {
       try {
         execSync(`gh api repos/AbhinavGos/${params.slug}/pages -X POST -F "source[branch]=master" -F "source[path]=/"`, { cwd: params.outDir, stdio: 'inherit' });
       } catch(e) {
-        // If master is named main or default
         try {
           execSync(`gh api repos/AbhinavGos/${params.slug}/pages -X POST -F "source[branch]=main" -F "source[path]=/"`, { cwd: params.outDir, stdio: 'inherit' });
         } catch(e2) {}

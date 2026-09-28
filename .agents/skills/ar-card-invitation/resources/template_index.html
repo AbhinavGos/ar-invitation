@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#180a0d">
+<meta name="theme-color" content="#12080a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Anchit & Natasha • Card-Anchored AR Wedding Invitation</title>
+<title>Interactive WebAR Card Experience</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Great+Vibes&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,10 +23,19 @@
 
 <style>
   *{box-sizing:border-box}
-  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#180a0d;color:#fff5e6;font-family:'Montserrat',sans-serif;-webkit-tap-highlight-color:transparent}
+  :root {
+    --bg-dark: #14080a;
+    --accent-gold: #f5cb6c;
+    --accent-glow: rgba(245,203,108,0.4);
+    --border-gold: rgba(235,188,90,0.45);
+    --text-main: #fff5e6;
+    --text-muted: #e8d4b8;
+  }
+
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg-dark);color:var(--text-main);font-family:'Montserrat',sans-serif;-webkit-tap-highlight-color:transparent}
   body{touch-action:manipulation}
 
-  /* MindAR container: fills viewport; MindAR internally sizes and positions video and canvas */
+  /* MindAR container: fills viewport */
   #ar-container{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;z-index:0;display:none}
 
   /* Landing Screen */
@@ -34,30 +43,30 @@
     radial-gradient(circle at 50% 22%,rgba(235,188,90,.25),transparent 40%),
     linear-gradient(160deg,#1f090d,#3d0e16 50%,#160508);overflow-y:auto}
 
-  .card-frame{max-width:520px;width:100%;border:1px solid rgba(235,188,90,.5);border-radius:24px;padding:32px 22px;background:rgba(28,9,14,.88);backdrop-filter:blur(14px);box-shadow:0 16px 48px rgba(0,0,0,.75),inset 0 0 24px rgba(235,188,90,.18);position:relative}
+  .card-frame{max-width:520px;width:100%;border:1px solid var(--border-gold);border-radius:24px;padding:32px 22px;background:rgba(28,9,14,.88);backdrop-filter:blur(14px);box-shadow:0 16px 48px rgba(0,0,0,.75),inset 0 0 24px rgba(235,188,90,.18);position:relative}
   .card-frame::before{content:"";position:absolute;inset:6px;border:1px dashed rgba(235,188,90,.35);border-radius:18px;pointer-events:none}
 
-  .monogram{font-family:'Great Vibes',cursive;font-size:54px;color:#f3cf7a;line-height:1;margin-bottom:6px;text-shadow:0 2px 10px rgba(243,207,122,.4)}
+  .monogram{font-family:'Great Vibes',cursive;font-size:54px;color:var(--accent-gold);line-height:1;margin-bottom:6px;text-shadow:0 2px 10px rgba(243,207,122,.4)}
   .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#e6b356;margin-bottom:10px;font-weight:600}
   h1{font-family:'Cinzel',serif;font-size:clamp(30px,8vw,52px);font-weight:700;line-height:1.08;margin:8px 0;background:linear-gradient(135deg,#fff2d1,#f5cb6c 50%,#d49e35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 4px 20px rgba(0,0,0,.5)}
-  .subtitle{font-size:13px;color:#e8d4b8;margin-bottom:18px;line-height:1.45;font-weight:400}
+  .subtitle{font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.45;font-weight:400}
 
   .preview-strip{display:flex;gap:8px;justify-content:center;margin:16px 0}
-  .preview-badge{flex:1;background:rgba(235,188,90,.08);border:1px solid rgba(235,188,90,.3);border-radius:14px;padding:8px 6px;font-size:10px;color:#f5cb6c}
+  .preview-badge{flex:1;background:rgba(235,188,90,.08);border:1px solid var(--border-gold);border-radius:14px;padding:8px 6px;font-size:10px;color:var(--accent-gold)}
   .preview-badge b{display:block;font-family:'Cinzel',serif;font-size:11px;color:#fff;margin-bottom:2px}
 
   .permissions-box{background:rgba(235,188,90,.07);border:1px solid rgba(235,188,90,.25);border-radius:16px;padding:14px;margin:16px 0;text-align:left}
-  .perm-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.12em;color:#f5cb6c;text-transform:uppercase;margin-bottom:8px;font-weight:700;display:flex;align-items:center;gap:6px}
-  .perm-item{display:flex;align-items:center;gap:10px;font-size:11.5px;color:#e8d4b8;margin-bottom:6px}
+  .perm-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.12em;color:var(--accent-gold);text-transform:uppercase;margin-bottom:8px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .perm-item{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--text-muted);margin-bottom:6px}
   .perm-item:last-child{margin-bottom:0}
   .perm-icon{font-size:15px;width:22px;text-align:center;flex-shrink:0}
 
   .btn-gold{margin-top:10px;padding:16px 32px;border:1px solid rgba(255,225,150,.8);border-radius:999px;background:linear-gradient(135deg,#f7d785,#d9a138 50%,#b37b1b);color:#21080b;font-family:'Cinzel',serif;font-weight:700;letter-spacing:.08em;font-size:14px;cursor:pointer;box-shadow:0 8px 28px rgba(217,161,56,.35);transition:transform .2s,box-shadow .2s;width:100%}
   .btn-gold:active{transform:scale(.97)}
 
-  .btn-secondary{margin-top:10px;padding:12px 20px;border:1px solid rgba(235,188,90,.4);border-radius:999px;background:rgba(235,188,90,.12);color:#f5cb6c;font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;cursor:pointer;width:100%}
+  .btn-secondary{margin-top:10px;padding:12px 20px;border:1px solid rgba(235,188,90,.4);border-radius:999px;background:rgba(235,188,90,.12);color:var(--accent-gold);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;cursor:pointer;width:100%}
 
-  /* Scanning Viewfinder Overlay (Landscape Visiting Card Proportion) */
+  /* Scanning Viewfinder Overlay */
   #scanner-overlay{position:fixed;inset:0;z-index:10;display:none;pointer-events:none;align-items:center;justify-content:center;flex-direction:column}
   .scanner-box{width:min(82vw,320px);height:min(52vw,203px);border:2px dashed rgba(245,203,108,.75);border-radius:18px;position:relative;animation:pulse-border 2s infinite ease-in-out}
   .scanner-box::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#ffd700,transparent);box-shadow:0 0 14px #ffd700;animation:scan-line 2.2s infinite ease-in-out}
@@ -65,72 +74,70 @@
   @keyframes scan-line{0%{top:0%} 50%{top:98%} 100%{top:0%}}
   @keyframes pulse-border{0%,100%{border-color:rgba(245,203,108,.6)} 50%{border-color:rgba(255,230,150,1)}}
 
-  .scanner-hint{margin-top:20px;background:rgba(25,8,12,.85);border:1px solid rgba(245,203,108,.5);padding:10px 22px;border-radius:999px;font-size:12px;color:#f5cb6c;letter-spacing:.06em;text-transform:uppercase;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,.6);text-align:center}
+  .scanner-hint{margin-top:20px;background:rgba(25,8,12,.85);border:1px solid var(--border-gold);padding:10px 22px;border-radius:999px;font-size:12px;color:var(--accent-gold);letter-spacing:.06em;text-transform:uppercase;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,.6);text-align:center}
 
   /* AR Overlay UI */
   #ui{position:fixed;inset:0;z-index:15;display:none;pointer-events:none}
   .topbar{position:absolute;top:env(safe-area-inset-top,16px);left:0;right:0;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
-  .brand{font-family:'Cinzel',serif;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#f5cb6c;text-shadow:0 2px 10px #000}
+  .brand{font-family:'Cinzel',serif;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-gold);text-shadow:0 2px 10px #000}
   .top-actions{display:flex;gap:10px}
-  .icon-btn{pointer-events:auto;border:1px solid rgba(245,203,108,.4);border-radius:50%;width:42px;height:42px;background:rgba(20,8,9,.75);color:#f5cb6c;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);box-shadow:0 4px 12px rgba(0,0,0,.5)}
+  .icon-btn{pointer-events:auto;border:1px solid var(--border-gold);border-radius:50%;width:42px;height:42px;background:rgba(20,8,9,.75);color:var(--accent-gold);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);box-shadow:0 4px 12px rgba(0,0,0,.5)}
 
   .card-locked-badge{position:absolute;top:calc(env(safe-area-inset-top,16px) + 54px);left:50%;transform:translateX(-50%);background:rgba(21,128,61,.85);border:1px solid rgba(74,222,128,.6);padding:6px 16px;border-radius:999px;font-size:11px;color:#fff;backdrop-filter:blur(6px);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);display:none}
 
   /* Bottom Dock with Story Progress & Event Details */
-  .bottom-dock{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom,18px));transform:translateX(-50%);width:min(94%,560px);text-align:center}
+  .bottom-dock{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom,18px));transform:translateX(-50%);width:min(94%,560px);text-align:center;transition:opacity 0.4s ease}
   
   .story-progress-container{display:flex;gap:6px;margin-bottom:10px;padding:0 4px}
   .progress-bar-segment{flex:1;height:3px;background:rgba(255,255,255,.25);border-radius:2px;overflow:hidden}
-  .progress-bar-fill{height:100%;width:0%;background:#f5cb6c;border-radius:2px;transition:width 0.1s linear}
+  .progress-bar-fill{height:100%;width:0%;background:var(--accent-gold);border-radius:2px;transition:width 0.1s linear}
 
-  .nav-controls{display:flex;justify-content:space-between;align-items:center;background:rgba(28,9,14,.88);border:1px solid rgba(245,203,108,.4);padding:10px 16px;border-radius:18px;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.7)}
-  .arrow-btn{pointer-events:auto;background:rgba(235,188,90,.15);border:1px solid rgba(245,203,108,.4);color:#f5cb6c;width:38px;height:38px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .nav-controls{display:flex;justify-content:space-between;align-items:center;background:rgba(28,9,14,.88);border:1px solid var(--border-gold);padding:10px 16px;border-radius:18px;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.7)}
+  .arrow-btn{pointer-events:auto;background:rgba(235,188,90,.15);border:1px solid var(--border-gold);color:var(--accent-gold);width:38px;height:38px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .center-info{flex:1;padding:0 12px}
-  .center-info h4{font-family:'Cinzel',serif;margin:0;font-size:15px;color:#f5cb6c;font-weight:700}
-  .center-info p{margin:2px 0 0;font-size:11px;color:#e8d4b8}
+  .center-info h4{font-family:'Cinzel',serif;margin:0;font-size:15px;color:var(--accent-gold);font-weight:700}
+  .center-info p{margin:2px 0 0;font-size:11px;color:var(--text-muted)}
 
-  .card-tabs{display:flex;justify-content:center;gap:6px;margin-top:10px}
-  .card-tab-btn{pointer-events:auto;font-family:'Cinzel',serif;font-size:10px;padding:6px 14px;border-radius:999px;border:1px solid rgba(245,203,108,.25);background:rgba(20,8,9,.65);color:#d9c5ab;cursor:pointer;backdrop-filter:blur(4px)}
+  .card-tabs{display:flex;justify-content:center;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .card-tab-btn{pointer-events:auto;font-family:'Cinzel',serif;font-size:10px;padding:6px 14px;border-radius:999px;border:1px solid rgba(245,203,108,.25);background:rgba(20,8,9,.65);color:#d9c5ab;cursor:pointer;backdrop-filter:blur(4px);white-space:nowrap}
   .card-tab-btn.active{background:linear-gradient(135deg,#f7d785,#d9a138);color:#1c080b;font-weight:700;border-color:#f7d785}
 
   /* Printable / Second-Screen Target Card Modal */
   #card-modal{position:fixed;inset:0;z-index:30;background:rgba(10,4,6,.92);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px)}
-  .modal-inner{max-width:380px;width:100%;text-align:center;background:rgba(28,9,14,.95);border:1px solid rgba(245,203,108,.5);border-radius:22px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.8);max-height:90vh;overflow-y:auto}
-  .modal-inner h3{font-family:'Cinzel',serif;margin:0 0 8px;font-size:18px;color:#f5cb6c}
-  .modal-inner p{font-size:12px;color:#e8d4b8;margin:0 0 16px;line-height:1.4}
-  .target-img-preview{width:100%;border-radius:14px;border:1px solid rgba(245,203,108,.4);box-shadow:0 8px 24px rgba(0,0,0,.6)}
-  .close-modal-btn{margin-top:16px;padding:12px 24px;border-radius:999px;border:1px solid rgba(245,203,108,.6);background:linear-gradient(135deg,#f7d785,#d9a138);color:#21080b;font-family:'Cinzel',serif;font-weight:700;font-size:12px;cursor:pointer;width:100%}
+  .modal-inner{max-width:380px;width:100%;text-align:center;background:rgba(28,9,14,.95);border:1px solid var(--border-gold);border-radius:22px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.8);max-height:90vh;overflow-y:auto}
+  .modal-inner h3{font-family:'Cinzel',serif;margin:0 0 8px;font-size:18px;color:var(--accent-gold)}
+  .modal-inner p{font-size:12px;color:var(--text-muted);margin:0 0 16px;line-height:1.4}
+  .target-img-preview{width:100%;border-radius:14px;border:1px solid var(--border-gold);box-shadow:0 8px 24px rgba(0,0,0,.6)}
+  .close-modal-btn{margin-top:16px;padding:12px 24px;border-radius:999px;border:1px solid var(--border-gold);background:linear-gradient(135deg,#f7d785,#d9a138);color:#21080b;font-family:'Cinzel',serif;font-weight:700;font-size:12px;cursor:pointer;width:100%}
 
-  #loading-view{position:fixed;inset:0;z-index:25;background:#180a0d;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px}
-  .spinner{width:48px;height:48px;border:4px solid rgba(245,203,108,.2);border-top-color:#f5cb6c;border-radius:50%;animation:spin 1s infinite linear}
+  #loading-view{position:fixed;inset:0;z-index:25;background:var(--bg-dark);display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px}
+  .spinner{width:48px;height:48px;border:4px solid rgba(245,203,108,.2);border-top-color:var(--accent-gold);border-radius:50%;animation:spin 1s infinite linear}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .load-text{margin-top:18px;font-family:'Cinzel',serif;font-size:14px;color:#f5cb6c;letter-spacing:.1em}
+  .load-text{margin-top:18px;font-family:'Cinzel',serif;font-size:14px;color:var(--accent-gold);letter-spacing:.1em}
 
-  #error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:35;width:min(90%,430px);display:none;text-align:center;background:rgba(25,8,12,.96);padding:26px;border-radius:22px;border:1px solid rgba(245,203,108,.4);box-shadow:0 16px 40px rgba(0,0,0,.8)}
-  #error h3{margin:0 0 10px;font-family:'Cinzel',serif;font-size:22px;color:#f5cb6c}
+  #error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:35;width:min(90%,430px);display:none;text-align:center;background:rgba(25,8,12,.96);padding:26px;border-radius:22px;border:1px solid var(--border-gold);box-shadow:0 16px 40px rgba(0,0,0,.8)}
+  #error h3{margin:0 0 10px;font-family:'Cinzel',serif;font-size:22px;color:var(--accent-gold)}
   #error p{margin:0 0 16px;color:#cfc5b7;font-size:14px;line-height:1.5}
-  #error .retry-btn{padding:10px 24px;border-radius:999px;border:1px solid rgba(245,203,108,.6);background:rgba(245,203,108,.15);color:#f5cb6c;font-size:13px;cursor:pointer}
+  #error .retry-btn{padding:10px 24px;border-radius:999px;border:1px solid var(--border-gold);background:rgba(245,203,108,.15);color:var(--accent-gold);font-size:13px;cursor:pointer}
 </style>
 </head>
 <body>
 
 <div id="landing">
   <div class="card-frame">
-    <div class="monogram">A &amp; N</div>
-    <div class="eyebrow">Card-Anchored AR Invitation</div>
-    <h1>Anchit &amp; Natasha</h1>
-    <div class="subtitle">Point camera at the Cherish visiting card. The 3D traditional wedding cards will pop up vertically standing right on top of the card!</div>
+    <div class="monogram" id="landingMonogram">✦</div>
+    <div class="eyebrow" id="landingEyebrow">Card-Anchored AR Invitation</div>
+    <h1 id="landingTitle">AR Invitation</h1>
+    <div class="subtitle" id="landingSubtitle">Point your camera at the physical card. The 3D cards will pop up vertically standing anchored to the card!</div>
 
-    <div class="preview-strip">
-      <div class="preview-badge"><b>13 Nov</b>Mehndi &amp; Sagan</div>
-      <div class="preview-badge"><b>14 Nov</b>Haldi &amp; Baraat</div>
-      <div class="preview-badge"><b>15 Nov</b>Anand Karaj</div>
+    <div class="preview-strip" id="previewStrip">
+      <!-- Injected dynamically -->
     </div>
 
     <div class="permissions-box">
       <div class="perm-title">✨ Card-Anchored AR Ready</div>
-      <div class="perm-item"><span class="perm-icon">📷</span><span><b>Card Scanning:</b> Recognizes the physical card image and locks 3D cards to it.</span></div>
-      <div class="perm-item"><span class="perm-icon">🎵</span><span><b>Shehnai Music:</b> Auspicious Indian wedding melody loop.</span></div>
+      <div class="perm-item"><span class="perm-icon">📷</span><span><b>Card Scanning:</b> Recognizes the physical card image and locks 3D scenes to it.</span></div>
+      <div class="perm-item"><span class="perm-icon">🎵</span><span><b>Acoustic Audio:</b> Low-latency procedural synth harmonized with the theme.</span></div>
     </div>
 
     <button class="btn-gold" id="start">Scan Card &amp; Launch AR ✨</button>
@@ -146,89 +153,179 @@
 <!-- Scanning Viewfinder -->
 <div id="scanner-overlay">
   <div class="scanner-box"></div>
-  <div class="scanner-hint">✨ Point Camera At Cherish Visiting Card</div>
+  <div class="scanner-hint" id="scannerHint">✨ Point Camera At Card</div>
 </div>
 
-<!-- MindAR Fullscreen Viewport -->
+<!-- Target Card Modal -->
+<div id="card-modal">
+  <div class="modal-inner">
+    <h3>Physical Trigger Card</h3>
+    <p>Scan this visual target with another device or print it on paper.</p>
+    <img src="./target_card.png" alt="Target Card" class="target-img-preview" id="modalTargetImg">
+    <button class="close-modal-btn" id="closeCardModal">Back to AR</button>
+  </div>
+</div>
+
+<!-- AR Container -->
 <div id="ar-container"></div>
 
-<!-- UI Controls -->
+<!-- AR Overlay UI -->
 <div id="ui">
   <div class="topbar">
-    <div class="brand">Anchit &amp; Natasha · New Delhi</div>
+    <div class="brand" id="topBrand">AR Experience</div>
     <div class="top-actions">
       <button class="icon-btn" id="musicBtn" aria-label="Toggle Music">🔊</button>
-      <button class="icon-btn" id="closeBtn" aria-label="Close AR mode">×</button>
+      <button class="icon-btn" id="closeBtn" aria-label="Close AR">×</button>
     </div>
   </div>
 
-  <div class="card-locked-badge" id="lockedBadge">✨ Card Detected &bull; Anchored</div>
+  <div class="card-locked-badge" id="lockedBadge">✨ Locked on Card</div>
 
-  <div class="bottom-dock">
-    <div class="story-progress-container">
-      <div class="progress-bar-segment"><div class="progress-bar-fill" id="fill0"></div></div>
-      <div class="progress-bar-segment"><div class="progress-bar-fill" id="fill1"></div></div>
-      <div class="progress-bar-segment"><div class="progress-bar-fill" id="fill2"></div></div>
+  <div class="bottom-dock" id="bottomDock">
+    <div class="story-progress-container" id="storyProgress">
+      <!-- Injected -->
     </div>
 
     <div class="nav-controls">
-      <button class="arrow-btn" id="prevBtn" aria-label="Previous Card">◀</button>
+      <button class="arrow-btn" id="prevBtn" aria-label="Previous Card">‹</button>
       <div class="center-info">
-        <h4 id="dockTitle">Mehndi &amp; Sagan</h4>
-        <p id="dockDate">Wednesday · 13th Nov · New Delhi</p>
+        <h4 id="dockTitle">Event</h4>
+        <p id="dockSubtitle">Details</p>
       </div>
-      <button class="arrow-btn" id="nextBtn" aria-label="Next Card">▶</button>
+      <button class="arrow-btn" id="nextBtn" aria-label="Next Card">›</button>
     </div>
 
-    <div class="card-tabs">
-      <button class="card-tab-btn active" data-index="0">13 Nov · Mehndi</button>
-      <button class="card-tab-btn" data-index="1">14 Nov · Haldi</button>
-      <button class="card-tab-btn" data-index="2">15 Nov · Anand Karaj</button>
+    <div class="card-tabs" id="cardTabs">
+      <!-- Injected -->
     </div>
-  </div>
-</div>
-
-<!-- Printable / Second-Screen Target Card Modal -->
-<div id="card-modal">
-  <div class="modal-inner">
-    <h3>Cherish Visiting Card Target</h3>
-    <p>Place this Cherish visiting card horizontally on a desk or open this image on another screen/tablet. Point your phone camera at it to see the 3D wedding invitation pop up right above it!</p>
-    <div style="background:#fff;padding:8px;border-radius:14px;display:inline-block;margin-bottom:12px;box-shadow:0 6px 20px rgba(0,0,0,0.5);">
-      <img id="targetPreviewImg" src="./target_card.png" class="target-img-preview" alt="Cherish Visiting Card" style="display:block;width:100%;max-width:320px;border-radius:8px;">
-    </div>
-    <p style="font-size:11px;color:#f5cb6c;margin:0 0 14px;line-height:1.4;">💡 Tip: Keep the card well-lit. If testing off a screen, increase screen brightness for instant recognition.</p>
-    <button class="close-modal-btn" id="closeModalBtn">Done / Back</button>
   </div>
 </div>
 
 <div id="error">
-  <h3>Camera Access Needed</h3>
-  <p id="errorText">Please allow Camera access to scan the invitation card.</p>
+  <h3 id="errorTitle">Notice</h3>
+  <p id="errorText">Please open this page over an HTTPS URL and allow camera permission.</p>
   <button class="retry-btn" id="dismissError">Dismiss</button>
 </div>
 
-<!-- Immediate Modal Script -->
-<script>
-const cardModal = document.getElementById('card-modal');
-const viewCardBtn = document.getElementById('viewCardBtn');
-const closeModalBtn = document.getElementById('closeModalBtn');
-
-viewCardBtn.onclick = function() { cardModal.style.display = 'flex'; };
-closeModalBtn.onclick = function() { cardModal.style.display = 'none'; };
-</script>
-
-<!-- MindAR Module Script -->
 <script type="module">
 import * as THREE from 'three';
 import { MindARThree } from 'mindar-image-three';
 
+// ----------------------------------------------------------------------------
+// UNIVERSAL WEBAR CONFIGURATION DEFAULTS
+// (Can be overridden by scaffold_card.mjs via window.AR_CONFIG)
+// ----------------------------------------------------------------------------
+const CONFIG = Object.assign({
+  name: "AR Card Invitation",
+  theme: "royal-wedding",      // royal-wedding | haldi-garden | cocktail-glam | corporate-summit | minimal-luxury
+  layout: "hybrid",            // carousel | triptych | diorama | popout | hybrid
+  silhouette: "arch",          // arch | scalloped | chamfer | deckled | portal | rect
+  depth: "gold-foil",          // gold-foil | silver-chrome | paper-matte | neon-glow | flat
+  anchorPosition: "back-edge", // back-edge | center | offset
+  cards: [
+    { title: "Mehndi & Sagan", date: "Nov 13 · Evening", color: "#f59e0b", type: "mehndi" },
+    { title: "Haldi & Baraat", date: "Nov 14 · Morning", color: "#eab308", type: "haldi" },
+    { title: "Anand Karaj & Reception", date: "Nov 15 · Evening", color: "#dc2626", type: "wedding" }
+  ]
+}, window.AR_CONFIG || {});
+
+// Apply Theme Variables
+const THEMES = {
+  "royal-wedding": {
+    bgDark: "#14080a",
+    accent: "#f5cb6c",
+    border: "rgba(235,188,90,0.45)",
+    monogram: "A & N",
+    eyebrow: "Royal AR Wedding Invitation",
+    particleType: "embers-petals",
+    soundType: "shehnai-raga",
+    edgeColor: 0xd4af37
+  },
+  "haldi-garden": {
+    bgDark: "#261504",
+    accent: "#fbbf24",
+    border: "rgba(251,191,36,0.5)",
+    monogram: "☀️",
+    eyebrow: "Festive Haldi Celebration",
+    particleType: "marigold-petals",
+    soundType: "acoustic-folk",
+    edgeColor: 0xf59e0b
+  },
+  "cocktail-glam": {
+    bgDark: "#090a12",
+    accent: "#38bdf8",
+    border: "rgba(56,189,248,0.45)",
+    monogram: "🍸",
+    eyebrow: "Cocktail Soirée & Sangeet",
+    particleType: "champagne-bubbles",
+    soundType: "lounge-jazz",
+    edgeColor: 0x38bdf8
+  },
+  "corporate-summit": {
+    bgDark: "#0b0f19",
+    accent: "#38bdf8",
+    border: "rgba(56,189,248,0.4)",
+    monogram: "◈",
+    eyebrow: "Global Keynote & VIP Pass",
+    particleType: "cyber-grid",
+    soundType: "ambient-tech",
+    edgeColor: 0x94a3b8
+  },
+  "minimal-luxury": {
+    bgDark: "#120e0d",
+    accent: "#e7ded0",
+    border: "rgba(231,222,208,0.4)",
+    monogram: "✦",
+    eyebrow: "Private Exclusive Invitation",
+    particleType: "dust-motes",
+    soundType: "minimal-piano",
+    edgeColor: 0xe7ded0
+  }
+};
+
+const currentTheme = THEMES[CONFIG.theme] || THEMES["royal-wedding"];
+document.documentElement.style.setProperty('--bg-dark', currentTheme.bgDark);
+document.documentElement.style.setProperty('--accent-gold', currentTheme.accent);
+document.documentElement.style.setProperty('--border-gold', currentTheme.border);
+document.getElementById('landingMonogram').textContent = currentTheme.monogram;
+document.getElementById('landingEyebrow').textContent = currentTheme.eyebrow;
+document.getElementById('landingTitle').textContent = CONFIG.name;
+document.getElementById('topBrand').textContent = CONFIG.name;
+
+// Populate preview badges and UI tabs
+const previewStrip = document.getElementById('previewStrip');
+const storyProgress = document.getElementById('storyProgress');
+const cardTabs = document.getElementById('cardTabs');
+
+previewStrip.innerHTML = '';
+storyProgress.innerHTML = '';
+cardTabs.innerHTML = '';
+
+CONFIG.cards.forEach((c, idx) => {
+  const pBadge = document.createElement('div');
+  pBadge.className = 'preview-badge';
+  pBadge.innerHTML = `<b>${c.date.split('·')[0].trim()}</b>${c.title}`;
+  previewStrip.appendChild(pBadge);
+
+  const pSeg = document.createElement('div');
+  pSeg.className = 'progress-bar-segment';
+  pSeg.innerHTML = '<div class="progress-bar-fill"></div>';
+  storyProgress.appendChild(pSeg);
+
+  const tBtn = document.createElement('button');
+  tBtn.className = `card-tab-btn ${idx === 0 ? 'active' : ''}`;
+  tBtn.dataset.index = idx;
+  tBtn.textContent = c.title;
+  tBtn.onclick = () => setCard(idx);
+  cardTabs.appendChild(tBtn);
+});
+
+// UI References
 const landing = document.getElementById('landing');
 const loadingView = document.getElementById('loading-view');
 const loadStatus = document.getElementById('loadStatus');
 const scannerOverlay = document.getElementById('scanner-overlay');
-const arContainer = document.getElementById('ar-container');
 const ui = document.getElementById('ui');
-const lockedBadge = document.getElementById('lockedBadge');
 const errorBox = document.getElementById('error');
 const errorText = document.getElementById('errorText');
 const dismissError = document.getElementById('dismissError');
@@ -237,326 +334,272 @@ const closeBtn = document.getElementById('closeBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const dockTitle = document.getElementById('dockTitle');
-const dockDate = document.getElementById('dockDate');
+const dockSubtitle = document.getElementById('dockSubtitle');
+const lockedBadge = document.getElementById('lockedBadge');
+const cardModal = document.getElementById('card-modal');
+const viewCardBtn = document.getElementById('viewCardBtn');
+const closeCardModal = document.getElementById('closeCardModal');
+const fills = document.querySelectorAll('.progress-bar-fill');
 const cardTabBtns = document.querySelectorAll('.card-tab-btn');
-const fills = [document.getElementById('fill0'), document.getElementById('fill1'), document.getElementById('fill2')];
 
+viewCardBtn.onclick = () => { cardModal.style.display = 'flex'; };
+closeCardModal.onclick = () => { cardModal.style.display = 'none'; };
+
+// WebAR State
 let mindarThree = null;
 let anchor = null;
+let cardsGroup = null;
 let cardMeshes = [];
-let cardsCarouselGroup = null;
-let petalsGroup = null;
-let fireworksGroup = null;
-let baseRing = null;
-let audioCtx = null, isMuted = false;
-
-const DURATION_PER_CARD = 4000;
-let activeIndex = 0;
-let slideStartTime = 0;
-let isAutoPlaying = true;
+let particlesGroup = null;
+let basePlateGroup = null;
 let isTargetFound = false;
 let justFoundTarget = false;
-let isReorienting = false;
-const ORIENTATION_WAKE_THRESHOLD = 0.065;  // ~3.7° threshold: ignores micro-tremors while reading
-const ORIENTATION_SLEEP_THRESHOLD = 0.015; // ~0.8° threshold: locks still once aligned
-const REORIENT_SLERP_SPEED = 0.045;        // silky-smooth reorientation rate
+let targetFoundTime = 0;
+let activeIndex = 0;
+let slideStartTime = performance.now();
+const DURATION_PER_CARD = 6500;
+let isAutoPlaying = true;
+let isMuted = false;
+let audioCtx = null;
+
+// Orientation Deadband
 const parentQuat = new THREE.Quaternion();
 const targetLocalQuat = new THREE.Quaternion();
+let isReorienting = false;
+const ORIENTATION_WAKE_THRESHOLD = 0.065;  // ~3.7°
+const ORIENTATION_SLEEP_THRESHOLD = 0.015; // ~0.8°
+const REORIENT_SLERP_SPEED = 0.045;
 
-const cardData = [
-  {
-    title: "Mehndi & Sagan",
-    date: "Wednesday · 13th November · New Delhi",
-    color: 0x2e8b57
-  },
-  {
-    title: "Haldi & Grand Baraat",
-    date: "Thursday · 14th November · New Delhi",
-    color: 0xffb703
-  },
-  {
-    title: "Anand Karaj & Reception",
-    date: "Friday · 15th November · New Delhi",
-    color: 0xd90429
+// ----------------------------------------------------------------------------
+// PROCEDURAL CANVAS SILHOUETTE & DIE-CUT MASKING
+// ----------------------------------------------------------------------------
+function applySilhouetteMask(sourceCvs, silhouetteType) {
+  const w = sourceCvs.width;
+  const h = sourceCvs.height;
+  const outCvs = document.createElement('canvas');
+  outCvs.width = w;
+  outCvs.height = h;
+  const ctx = outCvs.getContext('2d');
+
+  ctx.save();
+  ctx.beginPath();
+
+  if (silhouetteType === 'arch') {
+    // Mughal / Roman arch: straight sides, curved dome top
+    const archH = w * 0.45;
+    ctx.moveTo(0, h);
+    ctx.lineTo(0, archH);
+    ctx.quadraticCurveTo(w * 0.15, archH * 0.35, w * 0.5, 0);
+    ctx.quadraticCurveTo(w * 0.85, archH * 0.35, w, archH);
+    ctx.lineTo(w, h);
+    ctx.closePath();
+  } else if (silhouetteType === 'scalloped') {
+    // Decorative scalloped rounded top edge
+    ctx.moveTo(0, h);
+    ctx.lineTo(0, 100);
+    const scallops = 6;
+    const r = (w / scallops) / 2;
+    for (let i = 0; i < scallops; i++) {
+      const cx = r + i * (2 * r);
+      ctx.arc(cx, 100, r, Math.PI, 0, false);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+  } else if (silhouetteType === 'chamfer') {
+    // 45-degree modern/corporate chamfered corners
+    const c = 60;
+    ctx.moveTo(c, 0);
+    ctx.lineTo(w - c, 0);
+    ctx.lineTo(w, c);
+    ctx.lineTo(w, h - c);
+    ctx.lineTo(w - c, h);
+    ctx.lineTo(c, h);
+    ctx.lineTo(0, h - c);
+    ctx.lineTo(0, c);
+    ctx.closePath();
+  } else if (silhouetteType === 'deckled') {
+    // Organic torn/deckled paper edge
+    ctx.moveTo(0, h);
+    let curY = 0;
+    ctx.lineTo(0, 30);
+    for (let x = 0; x <= w; x += 15) {
+      const ny = 20 + Math.sin(x * 0.08) * 12 + Math.cos(x * 0.2) * 6;
+      ctx.lineTo(x, ny);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+  } else {
+    // Default crisp rounded rectangle
+    ctx.roundRect(0, 0, w, h, 28);
   }
-];
 
-// ----------------------------------------------------
-// Traditional 3D Event Card Texture Generator
-// ----------------------------------------------------
-function createEventCardTexture(type) {
-  const w = 1024, h = 1536;
+  ctx.clip();
+  ctx.drawImage(sourceCvs, 0, 0);
+  ctx.restore();
+
+  return outCvs;
+}
+
+// Procedural Card Canvas Fallback
+function createFallbackCardCanvas(type, title, subtitle) {
   const cvs = document.createElement('canvas');
-  cvs.width = w; cvs.height = h;
+  cvs.width = 720;
+  cvs.height = 1080;
   const ctx = cvs.getContext('2d');
 
-  const bgGrad = ctx.createLinearGradient(0, 0, w, h);
-  bgGrad.addColorStop(0, '#fffcf7');
-  bgGrad.addColorStop(0.5, '#fef8ee');
-  bgGrad.addColorStop(1, '#faf0df');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, w, h);
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 720, 1080);
+  if (type === 'haldi') {
+    grad.addColorStop(0, '#fef08a');
+    grad.addColorStop(1, '#ca8a04');
+  } else if (type === 'cocktail') {
+    grad.addColorStop(0, '#0f172a');
+    grad.addColorStop(1, '#0284c7');
+  } else {
+    grad.addColorStop(0, '#fffbeb');
+    grad.addColorStop(0.5, '#fef3c7');
+    grad.addColorStop(1, '#fde68a');
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 720, 1080);
 
+  // Border
   ctx.strokeStyle = '#d4af37';
   ctx.lineWidth = 14;
-  ctx.strokeRect(30, 30, w - 60, h - 60);
+  ctx.strokeRect(24, 24, 720 - 48, 1080 - 48);
 
-  ctx.strokeStyle = '#c59b27';
-  ctx.lineWidth = 3;
-  ctx.setLineDash([12, 8]);
-  ctx.strokeRect(52, 52, w - 104, h - 104);
-  ctx.setLineDash([]);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 52px "Cinzel", serif';
+  ctx.fillStyle = '#261405';
+  ctx.fillText(CONFIG.name, 360, 220);
 
-  if (type === 'mehndi') {
-    ctx.font = '700 28px "Cinzel", serif';
-    ctx.fillStyle = '#6b4c1b';
-    ctx.textAlign = 'center';
-    ctx.fillText('JOIN US IN THE CELEBRATION OF', w/2, 175);
+  ctx.font = 'bold 38px "Cinzel", serif';
+  ctx.fillStyle = '#b45309';
+  ctx.fillText(title, 360, 340);
 
-    ctx.font = '800 74px "Cinzel", serif';
-    ctx.fillStyle = '#1c3d25';
-    ctx.fillText('Anchit & Natasha', w/2, 255);
+  ctx.font = '600 30px "Montserrat", sans-serif';
+  ctx.fillStyle = '#451a03';
+  ctx.fillText(subtitle, 360, 420);
 
-    // Event pill badge for high contrast & instant legibility
-    ctx.fillStyle = '#2d6a4f';
-    ctx.beginPath();
-    ctx.roundRect(w/2 - 270, 292, 540, 66, 33);
-    ctx.fill();
-    ctx.strokeStyle = '#d4af37';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.font = 'bold 38px "Cinzel", serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('MEHNDI & SAGAN', w/2, 338);
-
-    ctx.font = '600 34px "Playfair Display", serif';
-    ctx.fillStyle = '#2b1d12';
-    ctx.fillText('Wednesday · November 13, 2024', w/2, 405);
-
-    ctx.font = '700 28px "Montserrat", sans-serif';
-    ctx.fillStyle = '#8c6328';
-    ctx.fillText('NEW DELHI', w/2, 448);
-
-    drawCoupleAvatar(ctx, w/2, 920, '#2d6a4f', '#d90429', '#1b4332', '#e9c46a');
-  } else if (type === 'haldi') {
-    ctx.font = '700 28px "Cinzel", serif';
-    ctx.fillStyle = '#78350f';
-    ctx.textAlign = 'center';
-    ctx.fillText('WE CORDIALLY INVITE YOU TO', w/2, 175);
-
-    ctx.font = '800 74px "Cinzel", serif';
-    ctx.fillStyle = '#78350f';
-    ctx.fillText('Anchit & Natasha', w/2, 255);
-
-    // Event pill badge
-    ctx.fillStyle = '#d97706';
-    ctx.beginPath();
-    ctx.roundRect(w/2 - 310, 292, 620, 66, 33);
-    ctx.fill();
-    ctx.strokeStyle = '#fef3c7';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.font = 'bold 36px "Cinzel", serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('HALDI & GRAND BARAAT', w/2, 338);
-
-    ctx.font = '600 34px "Playfair Display", serif';
-    ctx.fillStyle = '#2b1d12';
-    ctx.fillText('Thursday · November 14, 2024', w/2, 405);
-
-    ctx.font = '700 28px "Montserrat", sans-serif';
-    ctx.fillStyle = '#b45309';
-    ctx.fillText('NEW DELHI', w/2, 448);
-
-    drawCoupleAvatar(ctx, w/2, 920, '#facc15', '#f59e0b', '#0284c7', '#fde047');
-  } else {
-    ctx.font = '700 28px "Cinzel", serif';
-    ctx.fillStyle = '#7f1d1d';
-    ctx.textAlign = 'center';
-    ctx.fillText('WITH THE BLESSINGS OF ALMIGHTY', w/2, 175);
-
-    ctx.font = '800 74px "Cinzel", serif';
-    ctx.fillStyle = '#450a0a';
-    ctx.fillText('Anchit & Natasha', w/2, 255);
-
-    // Event pill badge
-    ctx.fillStyle = '#991b1b';
-    ctx.beginPath();
-    ctx.roundRect(w/2 - 330, 292, 660, 66, 33);
-    ctx.fill();
-    ctx.strokeStyle = '#fde68a';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.font = 'bold 34px "Cinzel", serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('ANAND KARAJ & RECEPTION', w/2, 338);
-
-    ctx.font = '600 34px "Playfair Display", serif';
-    ctx.fillStyle = '#2b1d12';
-    ctx.fillText('Friday · November 15, 2024', w/2, 405);
-
-    ctx.font = '700 28px "Montserrat", sans-serif';
-    ctx.fillStyle = '#991b1b';
-    ctx.fillText('NEW DELHI', w/2, 448);
-
-    drawCoupleAvatar(ctx, w/2, 920, '#b91c1c', '#dc2626', '#1e1b4b', '#d4af37');
-  }
-
-  const texture = new THREE.CanvasTexture(cvs);
-  texture.anisotropy = 16;
-  texture.needsUpdate = true;
-  return texture;
+  return applySilhouetteMask(cvs, CONFIG.silhouette);
 }
 
-function drawCoupleAvatar(ctx, cx, cy, brideOut, brideDup, groomOut, groomShawl) {
-  ctx.save();
-  ctx.translate(cx, cy);
-
-  // Bride
-  ctx.save();
-  ctx.translate(-70, 0);
-  ctx.fillStyle = brideOut;
-  ctx.beginPath();
-  ctx.moveTo(0, -90);
-  ctx.lineTo(-85, 220);
-  ctx.lineTo(85, 220);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = '#d4af37';
-  ctx.fillRect(-85, 200, 170, 20);
-
-  ctx.strokeStyle = brideDup;
-  ctx.lineWidth = 22;
-  ctx.beginPath();
-  ctx.moveTo(-40, -70);
-  ctx.quadraticCurveTo(45, 20, 65, 170);
-  ctx.stroke();
-
-  ctx.fillStyle = '#1c1917';
-  ctx.beginPath(); ctx.arc(0, -140, 44, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fed7aa';
-  ctx.beginPath(); ctx.arc(0, -135, 34, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#d4af37';
-  ctx.beginPath(); ctx.arc(0, -165, 8, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
-
-  // Groom
-  ctx.save();
-  ctx.translate(80, -20);
-  ctx.fillStyle = groomOut;
-  ctx.beginPath();
-  ctx.roundRect(-50, -80, 100, 210, [15, 15, 0, 0]);
-  ctx.fill();
-  ctx.fillStyle = '#fef3c7';
-  ctx.fillRect(-40, 130, 34, 110);
-  ctx.fillRect(6, 130, 34, 110);
-
-  ctx.strokeStyle = groomShawl;
-  ctx.lineWidth = 16;
-  ctx.beginPath();
-  ctx.moveTo(-40, -60);
-  ctx.lineTo(-40, 150);
-  ctx.stroke();
-
-  ctx.fillStyle = '#1c1917';
-  ctx.beginPath(); ctx.arc(0, -130, 40, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fed7aa';
-  ctx.beginPath(); ctx.arc(0, -125, 32, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = groomShawl;
-  ctx.beginPath(); ctx.arc(0, -150, 35, Math.PI, Math.PI*2); ctx.fill();
-  ctx.restore();
-
-  ctx.restore();
-}
-
-// ----------------------------------------------------
-// Web Audio API Shehnai Synthesizer
-// ----------------------------------------------------
-function initFestiveMusic() {
+// ----------------------------------------------------------------------------
+// PROCEDURAL WEB AUDIO SYNTHESIZER
+// ----------------------------------------------------------------------------
+function initProceduralAudio() {
   if (audioCtx) return;
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) return;
   audioCtx = new AudioContext();
 
-  const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33];
-  const melody = [0, 2, 3, 4, 3, 2, 4, 5, 4, 3, 2, 0, 1, 2, 4, 2];
-  let noteIdx = 0;
+  const soundType = currentTheme.soundType;
 
-  function playNextNote() {
-    if (!audioCtx || audioCtx.state === 'closed' || isMuted) return;
-
-    const now = audioCtx.currentTime;
-    const freq = scale[melody[noteIdx % melody.length]];
-    noteIdx++;
-
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, now);
-
-    const lfo = audioCtx.createOscillator();
-    const lfoGain = audioCtx.createGain();
-    lfo.frequency.setValueAtTime(5.5, now);
-    lfoGain.gain.setValueAtTime(3.5, now);
-    lfo.connect(osc.frequency);
-    lfo.start(now);
-
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.08);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(now);
-    osc.stop(now + 0.5);
-
-    if (noteIdx % 4 === 0) {
-      const drumOsc = audioCtx.createOscillator();
-      const drumGain = audioCtx.createGain();
-      drumOsc.type = 'sine';
-      drumOsc.frequency.setValueAtTime(140, now);
-      drumOsc.frequency.exponentialRampToValueAtTime(45, now + 0.15);
-      drumGain.gain.setValueAtTime(0.25, now);
-      drumGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-      drumOsc.connect(drumGain);
-      drumGain.connect(audioCtx.destination);
-      drumOsc.start(now);
-      drumOsc.stop(now + 0.2);
+  if (soundType === 'lounge-jazz') {
+    // Minor 7th / 9th chords
+    const chords = [
+      [220.00, 261.63, 329.63, 392.00], // Am7
+      [174.61, 220.00, 261.63, 329.63], // Fmaj7
+      [196.00, 246.94, 293.66, 349.23], // G7
+      [164.81, 196.00, 246.94, 293.66]  // Em7
+    ];
+    let chordIdx = 0;
+    function playJazz() {
+      if (!audioCtx || audioCtx.state === 'closed' || isMuted) return;
+      const now = audioCtx.currentTime;
+      const notes = chords[chordIdx % chords.length];
+      chordIdx++;
+      notes.forEach(f => {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, now);
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.linearRampToValueAtTime(0.06, now + 0.3);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 2.3);
+      });
+      setTimeout(playJazz, 2200);
     }
+    playJazz();
+  } else if (soundType === 'acoustic-folk') {
+    // Pentatonic plucks
+    const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+    function playFolk() {
+      if (!audioCtx || audioCtx.state === 'closed' || isMuted) return;
+      const now = audioCtx.currentTime;
+      const f = scale[Math.floor(Math.random() * scale.length)];
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now);
+      g.gain.setValueAtTime(0.12, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.65);
+      setTimeout(playFolk, 350 + Math.random() * 300);
+    }
+    playFolk();
+  } else {
+    // Shehnai Raga loop with Tanpura drone (Default)
+    const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+    const melody = [0, 2, 3, 4, 3, 2, 4, 5, 4, 3, 2, 0, 1, 2, 4, 2];
+    let noteIdx = 0;
+    function playShehnai() {
+      if (!audioCtx || audioCtx.state === 'closed' || isMuted) return;
+      const now = audioCtx.currentTime;
+      const freq = scale[melody[noteIdx % melody.length]];
+      noteIdx++;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
 
-    setTimeout(playNextNote, 420);
+      const lfo = audioCtx.createOscillator();
+      const lfoG = audioCtx.createGain();
+      lfo.frequency.setValueAtTime(5.5, now);
+      lfoG.gain.setValueAtTime(3.5, now);
+      lfo.connect(osc.frequency);
+      lfo.start(now);
+
+      g.gain.setValueAtTime(0.001, now);
+      g.gain.exponentialRampToValueAtTime(0.14, now + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.45);
+      setTimeout(playShehnai, 400);
+    }
+    playShehnai();
   }
-
-  playNextNote();
 }
 
 function toggleAudio() {
-  if (!audioCtx) {
-    initFestiveMusic();
-  } else if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-    isMuted = false;
-  } else {
-    isMuted = !isMuted;
-  }
+  if (!audioCtx) initProceduralAudio();
+  else if (audioCtx.state === 'suspended') { audioCtx.resume(); isMuted = false; }
+  else { isMuted = !isMuted; }
   musicBtn.textContent = isMuted ? '🔇' : '🔊';
 }
 
-// ----------------------------------------------------
-// Card-Anchored AR Launcher
-// ----------------------------------------------------
-async function startCardAnchoredAR() {
+// ----------------------------------------------------------------------------
+// WEBAR INITIALIZATION & 3D SCENE SETUP
+// ----------------------------------------------------------------------------
+async function startWebAR() {
   landing.style.display = 'none';
   loadingView.style.display = 'flex';
   loadStatus.textContent = 'Starting Camera & Card Tracker...';
 
-  initFestiveMusic();
+  initProceduralAudio();
 
-  // Bug 1 fix: arContainer must be visible BEFORE MindARThree is created
-  // so it can correctly measure the viewport size for its internal canvas/video.
+  // Container must be visible before MindAR initialization
+  const arContainer = document.getElementById('ar-container');
   arContainer.style.display = 'block';
 
   try {
@@ -573,109 +616,137 @@ async function startCardAnchoredAR() {
 
     const { renderer, scene, camera } = mindarThree;
 
-    // Calibrated gentle lighting for 3D accent elements (golden pedestal bar)
-    const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+    // Lighting (gentle to preserve unlit card contrast)
+    const ambient = new THREE.AmbientLight(0xffffff, 0.75);
     scene.add(ambient);
-    const hemi = new THREE.HemisphereLight(0xfff5e6, 0x24182b, 0.4);
-    scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xffecd1, 0.8);
+    const key = new THREE.DirectionalLight(0xffecd1, 0.85);
     key.position.set(-2, 5, 4);
     scene.add(key);
 
-    // Anchor on Card Image Target (assigned to global anchor variable)
+    // Anchor on Physical Card Target
     anchor = mindarThree.addAnchor(0);
 
-    // ── 3D Decorative Ground Base on Physical Card Surface (XY plane, Z = 0) ──
-    const basePlateGroup = new THREE.Group();
+    // ── 1. Ground Pedestal on Card Surface ──
+    basePlateGroup = new THREE.Group();
     basePlateGroup.position.set(0, 0, 0.005);
     anchor.group.add(basePlateGroup);
 
-    // Glowing ornate gold mandala ring flat on the visiting card surface
-    const ringGeo = new THREE.RingGeometry(0.18, 0.26, 36);
+    // Ornate Rotating Emblem Ring
+    const ringGeo = new THREE.RingGeometry(0.18, 0.26, 40);
     const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xf5cb6c,
+      color: currentTheme.edgeColor,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.75
     });
-    baseRing = new THREE.Mesh(ringGeo, ringMat);
+    const baseRing = new THREE.Mesh(ringGeo, ringMat);
     basePlateGroup.add(baseRing);
 
-    // 3D Golden pedestal bar holding the vertical pop-up cards on the visiting card
-    const standGeo = new THREE.BoxGeometry(0.78, 0.03, 0.015);
+    // Ground Stand Bar
+    const standGeo = new THREE.BoxGeometry(0.85, 0.03, 0.016);
     const standMat = new THREE.MeshStandardMaterial({
-      color: 0xd4af37,
+      color: currentTheme.edgeColor,
       metalness: 0.85,
-      roughness: 0.2
+      roughness: 0.22
     });
     const standMesh = new THREE.Mesh(standGeo, standMat);
     standMesh.position.set(0, -0.05, 0.008);
     basePlateGroup.add(standMesh);
 
-    // ── 3D Carousel Group: Positioned on Card, Dynamically Faces Camera ──
-    // Anchored at (0, -0.05, 0.015) on the visiting card.
-    // Orientation dynamically aligns with the viewer's camera,
-    // so whether the card is on a table or held in hand, the text is ALWAYS 100% upright and easy to read!
-    cardsCarouselGroup = new THREE.Group();
-    cardsCarouselGroup.position.set(0, -0.05, 0.015);
-    anchor.group.add(cardsCarouselGroup);
+    // ── 2. Cards Group & Spatial Anchor Placement ──
+    cardsGroup = new THREE.Group();
+    if (CONFIG.anchorPosition === 'back-edge') {
+      // Anchored along top/rear edge: physical card serves as foreground stage
+      cardsGroup.position.set(0, 0.38, 0.02);
+    } else if (CONFIG.anchorPosition === 'offset') {
+      cardsGroup.position.set(0.55, 0, 0.02);
+    } else {
+      // Centered
+      cardsGroup.position.set(0, -0.05, 0.02);
+    }
+    anchor.group.add(cardsGroup);
 
-    // Build 3 Event Cards with bottom pivot
-    const types = ['mehndi', 'haldi', 'wedding'];
-    const cardGeo = new THREE.PlaneGeometry(0.74, 1.10);
-    // Shift geometry so bottom edge is at y = 0 (grounded on pedestal)
-    cardGeo.translate(0, 0.55, 0);
+    // ── 3. Build 3D Card Meshes (with Cardstock Depth & Bevels) ──
+    const cardWidth = 0.74;
+    const cardHeight = 1.12;
+    const cardDepth = (CONFIG.depth === 'flat') ? 0.0001 : 0.008;
 
+    const cardGeo = new THREE.BoxGeometry(cardWidth, cardHeight, cardDepth);
+    cardGeo.translate(0, cardHeight / 2, 0); // Pivot at bottom
+
+    const edgeMat = new THREE.MeshStandardMaterial({
+      color: currentTheme.edgeColor,
+      metalness: (CONFIG.depth === 'paper-matte') ? 0.05 : 0.88,
+      roughness: (CONFIG.depth === 'paper-matte') ? 0.9 : 0.22
+    });
+
+    const texLoader = new THREE.TextureLoader();
     cardMeshes = [];
-    types.forEach((t, i) => {
-      const tex = createEventCardTexture(t);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      // Use MeshBasicMaterial for 100% color accuracy, rich contrast, and zero blowout
-      const mat = new THREE.MeshBasicMaterial({
-        map: tex,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: (i === 0) ? 1.0 : 0.55
-      });
-      const mesh = new THREE.Mesh(cardGeo, mat);
+
+    CONFIG.cards.forEach((c, idx) => {
+      let frontMat;
+      if (c.url) {
+        const tex = texLoader.load(c.url);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        frontMat = new THREE.MeshBasicMaterial({
+          map: tex,
+          side: THREE.FrontSide,
+          transparent: true,
+          opacity: 1.0
+        });
+      } else {
+        const cvs = createFallbackCardCanvas(c.type || 'wedding', c.title, c.date);
+        const tex = new THREE.CanvasTexture(cvs);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        frontMat = new THREE.MeshBasicMaterial({
+          map: tex,
+          side: THREE.FrontSide,
+          transparent: true,
+          opacity: 1.0
+        });
+      }
+
+      const backMat = new THREE.MeshBasicMaterial({ color: 0x181216, side: THREE.BackSide });
+      const materials = [edgeMat, edgeMat, edgeMat, edgeMat, frontMat, backMat];
+
+      const mesh = new THREE.Mesh(cardGeo, materials);
       mesh.position.set(0, 0, 0);
-      mesh.userData = { index: i };
-      cardsCarouselGroup.add(mesh);
+      mesh.userData = { index: idx };
+      cardsGroup.add(mesh);
       cardMeshes.push(mesh);
     });
 
-    // Petals showering down above standing cards
-    petalsGroup = new THREE.Group();
-    const petalCount = 50;
-    const petalGeo = new THREE.PlaneGeometry(0.04, 0.06);
-    const marigoldMat = new THREE.MeshBasicMaterial({color: 0xffa500, side: THREE.DoubleSide});
-    const roseMat = new THREE.MeshBasicMaterial({color: 0xe60039, side: THREE.DoubleSide});
+    // ── 4. Thematic Particles ──
+    particlesGroup = new THREE.Group();
+    const particleCount = 45;
+    const pGeo = new THREE.PlaneGeometry(0.035, 0.055);
+    const pMat1 = new THREE.MeshBasicMaterial({ color: currentTheme.edgeColor, side: THREE.DoubleSide });
+    const pMat2 = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
 
-    for(let i=0; i<petalCount; i++){
-      const mat = Math.random() > 0.4 ? marigoldMat : roseMat;
-      const p = new THREE.Mesh(petalGeo, mat);
-      p.position.set((Math.random()-0.5)*1.8, Math.random()*1.8, (Math.random()-0.5)*0.8);
-      p.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
-      p.userData = { speedY: 0.005 + Math.random()*0.008, rotSpeed: 0.02 + Math.random()*0.03 };
-      petalsGroup.add(p);
+    for (let i = 0; i < particleCount; i++) {
+      const pm = (Math.random() > 0.4) ? pMat1 : pMat2;
+      const p = new THREE.Mesh(pGeo, pm);
+      p.position.set((Math.random() - 0.5) * 1.8, Math.random() * 1.8, (Math.random() - 0.5) * 0.8);
+      p.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      p.userData = {
+        speedY: 0.004 + Math.random() * 0.007,
+        rotSpeed: 0.015 + Math.random() * 0.03,
+        driftX: (Math.random() - 0.5) * 0.002
+      };
+      particlesGroup.add(p);
     }
-    cardsCarouselGroup.add(petalsGroup);
+    cardsGroup.add(particlesGroup);
 
-    // Fireworks attached above standing cards
-    fireworksGroup = new THREE.Group();
-    cardsCarouselGroup.add(fireworksGroup);
-
-    // Tracking events: Lock to card vs Searching
+    // Tracking events
     anchor.onTargetFound = () => {
       isTargetFound = true;
       justFoundTarget = true;
+      targetFoundTime = performance.now();
       scannerOverlay.style.display = 'none';
       lockedBadge.style.display = 'block';
       if (navigator.vibrate) {
-        try { navigator.vibrate(100); } catch(e) {}
+        try { navigator.vibrate(80); } catch(e) {}
       }
-      spawnFireworkBurst(cardData[activeIndex].color);
-      spawnFireworkBurst(0xffd700);
     };
 
     anchor.onTargetLost = () => {
@@ -686,7 +757,6 @@ async function startCardAnchoredAR() {
 
     await mindarThree.start();
 
-    // Trigger resize to guarantee full viewport alignment
     if (typeof mindarThree.resize === 'function') {
       mindarThree.resize();
     }
@@ -697,212 +767,186 @@ async function startCardAnchoredAR() {
 
     setCard(0);
 
+    // Render loop
     renderer.setAnimationLoop(() => {
       try {
         updateOrientation();
-        updateCarouselCards();
-        updatePetals();
-        updateFireworks();
+        updateLayoutAnimation();
+        updateParticles();
         updateStoryProgress();
-        if (baseRing) baseRing.rotation.z += 0.008;
-      } catch (loopErr) {
-        console.warn('Animation loop error:', loopErr);
+        if (baseRing) baseRing.rotation.z += 0.007;
+      } catch (err) {
+        console.warn('Render loop warning:', err);
       }
       try {
         renderer.render(scene, camera);
-      } catch (renderErr) {
-        console.error('Render error:', renderErr);
+      } catch (rErr) {
+        console.error('Render error:', rErr);
       }
     });
 
-  } catch(err) {
-    console.error('AR Tracker Error:', err);
+  } catch (err) {
+    console.error('WebAR Tracker Error:', err);
     loadingView.style.display = 'none';
-    arContainer.style.display = 'none'; // hide since start failed
+    arContainer.style.display = 'none';
     errorText.textContent = err?.message || 'Could not start camera or AR tracking.';
     errorBox.style.display = 'block';
   }
 }
 
-function spawnFireworkBurst(colorHex) {
-  if (!fireworksGroup) return;
-  const count = 35;
-  const geo = new THREE.BufferGeometry();
-  const positions = new Float32Array(count * 3);
-  const velocities = [];
+// ----------------------------------------------------------------------------
+// LAYOUT CHOREOGRAPHY ENGINES
+// ----------------------------------------------------------------------------
+function updateLayoutAnimation() {
+  if (!isTargetFound || !cardsGroup) return;
 
-  const startX = (Math.random() - 0.5) * 0.8;
-  const startY = 1.3 + Math.random() * 0.5;
-  const startZ = (Math.random() - 0.5) * 0.4;
+  const now = performance.now();
+  const timeSinceFound = (now - targetFoundTime) / 1000; // in seconds
 
-  for (let i = 0; i < count; i++) {
-    positions[i*3]   = startX;
-    positions[i*3+1] = startY;
-    positions[i*3+2] = startZ;
+  const mode = CONFIG.layout;
 
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.random() * Math.PI;
-    const speed = 0.015 + Math.random() * 0.025;
+  cardMeshes.forEach((mesh, i) => {
+    let targetX = 0;
+    let targetZ = 0;
+    let targetRotY = 0;
+    let targetScale = 1.0;
+    let targetOpacity = 1.0;
 
-    velocities.push({
-      x: speed * Math.sin(phi) * Math.cos(theta),
-      y: speed * Math.cos(phi),
-      z: speed * Math.sin(phi) * Math.sin(theta)
-    });
-  }
+    if (mode === 'triptych') {
+      // 3-Panel Panoramic Stage (Always active)
+      const diff = i - 1; // Center is index 1
+      targetX = diff * 0.85;
+      targetZ = -Math.abs(diff) * 0.12;
+      targetRotY = -diff * 0.32;
+      targetScale = (i === 1) ? 1.0 : 0.88;
+      targetOpacity = 1.0;
+    } else if (mode === 'diorama') {
+      // Multi-layer Z-depth tunnel
+      targetX = 0;
+      targetZ = 0.12 - (i * 0.12);
+      targetRotY = 0;
+      targetScale = 1.0 - (i * 0.06);
+      targetOpacity = 1.0;
+    } else if (mode === 'popout') {
+      // Frame-break anamorphic pop-out
+      if (i === 0) {
+        // Background frame window
+        targetX = 0; targetZ = 0; targetScale = 1.0; targetOpacity = 0.95;
+      } else {
+        // Hero subject popping out forward
+        targetX = 0; targetZ = 0.06; targetScale = 1.18; targetOpacity = 1.0;
+      }
+    } else if (mode === 'hybrid') {
+      // Grand Reveal for first 3.2s, then smooth glide to focused carousel
+      if (timeSinceFound < 3.2) {
+        // Triptych fan-out reveal
+        const diff = i - 1;
+        targetX = diff * 0.85;
+        targetZ = -Math.abs(diff) * 0.12;
+        targetRotY = -diff * 0.32;
+        targetScale = 0.92;
+        targetOpacity = 1.0;
+      } else {
+        // Glide into active carousel
+        const diff = i - activeIndex;
+        targetX = diff * 0.82;
+        targetZ = -Math.abs(diff) * 0.22;
+        targetRotY = -diff * 0.22;
+        targetScale = (i === activeIndex) ? 1.0 : 0.74;
+        targetOpacity = (i === activeIndex) ? 1.0 : 0.52;
+      }
+    } else {
+      // Default: Focused Carousel Stack
+      const diff = i - activeIndex;
+      targetX = diff * 0.82;
+      targetZ = -Math.abs(diff) * 0.22;
+      targetRotY = -diff * 0.22;
+      targetScale = (i === activeIndex) ? 1.0 : 0.74;
+      targetOpacity = (i === activeIndex) ? 1.0 : 0.52;
+    }
 
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const mat = new THREE.PointsMaterial({
-    size: 0.035,
-    color: colorHex || 0xffd700,
-    transparent: true,
-    opacity: 1.0
+    mesh.position.x += (targetX - mesh.position.x) * 0.08;
+    mesh.position.z += (targetZ - mesh.position.z) * 0.08;
+    mesh.rotation.y += (targetRotY - mesh.rotation.y) * 0.08;
+
+    const curScale = mesh.scale.x;
+    const newScale = curScale + (targetScale - curScale) * 0.08;
+    mesh.scale.set(newScale, newScale, newScale);
+
+    if (Array.isArray(mesh.material) && mesh.material[4]) {
+      mesh.material[4].opacity += (targetOpacity - mesh.material[4].opacity) * 0.08;
+    }
   });
-
-  const burst = new THREE.Points(geo, mat);
-  burst.userData = { velocities, life: 1.0 };
-  fireworksGroup.add(burst);
 }
 
-function updateFireworks() {
-  if (!fireworksGroup) return;
-  if (isTargetFound && Math.random() < 0.03) {
-    spawnFireworkBurst(cardData[activeIndex].color);
-  }
-
-  for (let i = fireworksGroup.children.length - 1; i >= 0; i--) {
-    const burst = fireworksGroup.children[i];
-    burst.userData.life -= 0.025;
-    burst.material.opacity = burst.userData.life;
-
-    const pos = burst.geometry.attributes.position.array;
-    const vels = burst.userData.velocities;
-
-    for (let j = 0; j < vels.length; j++) {
-      pos[j*3]   += vels[j].x;
-      pos[j*3+1] += vels[j].y - 0.002;
-      pos[j*3+2] += vels[j].z;
-    }
-    burst.geometry.attributes.position.needsUpdate = true;
-
-    if (burst.userData.life <= 0) {
-      fireworksGroup.remove(burst);
-      burst.geometry.dispose();
-      burst.material.dispose();
-    }
-  }
-}
-
-function updatePetals() {
-  if (!petalsGroup) return;
-  petalsGroup.children.forEach(p => {
+function updateParticles() {
+  if (!particlesGroup) return;
+  particlesGroup.children.forEach(p => {
     p.position.y -= p.userData.speedY;
+    p.position.x += p.userData.driftX;
     p.rotation.x += p.userData.rotSpeed;
     p.rotation.y += p.userData.rotSpeed;
     if (p.position.y < 0.0) {
-      p.position.y = 1.8;
-      p.position.x = (Math.random() - 0.5) * 2.0;
-      p.position.z = (Math.random() - 0.5) * 2.0;
+      p.position.y = 1.7;
+      p.position.x = (Math.random() - 0.5) * 1.8;
+      p.position.z = (Math.random() - 0.5) * 0.8;
     }
   });
 }
 
 function setCard(idx) {
-  if (idx < 0) idx = cardData.length - 1;
-  activeIndex = idx % cardData.length;
+  if (idx < 0) idx = CONFIG.cards.length - 1;
+  activeIndex = idx % CONFIG.cards.length;
   slideStartTime = performance.now();
 
-  const data = cardData[activeIndex];
+  const data = CONFIG.cards[activeIndex];
   dockTitle.textContent = data.title;
-  dockDate.textContent = data.date;
+  dockSubtitle.textContent = data.date;
 
   cardTabBtns.forEach((btn, i) => {
     if (i === activeIndex) btn.classList.add('active');
     else btn.classList.remove('active');
   });
-
-  if (isTargetFound) {
-    spawnFireworkBurst(data.color);
-    spawnFireworkBurst(0xffd700);
-  }
 }
 
-// ── Dynamic Camera-Facing Orientation with Tremor Suppression ───────────────
-// Uses a deadband hysteresis filter to completely eliminate hand-tremor and reading shake:
-// - Micro-tilts (< 3.7°) while reading are ignored, keeping the card 100% still and clear.
-// - Intentional camera/card movements smoothly glide to face the viewer.
+// ── Anti-Tremor Deadband Camera-Facing Orientation ──
 function updateOrientation() {
-  if (!isTargetFound || !cardsCarouselGroup || !anchor || !anchor.group) return;
+  if (!isTargetFound || !cardsGroup || !anchor || !anchor.group) return;
 
   anchor.group.getWorldQuaternion(parentQuat);
   targetLocalQuat.copy(parentQuat).invert();
 
   if (justFoundTarget) {
-    cardsCarouselGroup.quaternion.copy(targetLocalQuat);
+    cardsGroup.quaternion.copy(targetLocalQuat);
     justFoundTarget = false;
     isReorienting = false;
     return;
   }
 
-  const angleDiff = cardsCarouselGroup.quaternion.angleTo(targetLocalQuat);
-
-  // Deadband: Only wake up if user intentionally rotates phone/card beyond reading tremor threshold
-  if (!isReorienting) {
-    if (angleDiff > ORIENTATION_WAKE_THRESHOLD) {
-      isReorienting = true;
-    }
+  const angleDiff = cardsGroup.quaternion.angleTo(targetLocalQuat);
+  if (!isReorienting && angleDiff > ORIENTATION_WAKE_THRESHOLD) {
+    isReorienting = true;
   }
 
-  // Softly glide to new angle, then lock completely still once settled
   if (isReorienting) {
-    cardsCarouselGroup.quaternion.slerp(targetLocalQuat, REORIENT_SLERP_SPEED);
+    cardsGroup.quaternion.slerp(targetLocalQuat, REORIENT_SLERP_SPEED);
     if (angleDiff < ORIENTATION_SLEEP_THRESHOLD) {
       isReorienting = false;
     }
   }
 }
 
-function updateCarouselCards() {
-  cardMeshes.forEach((mesh, i) => {
-    const diff = i - activeIndex;
-    let targetX = diff * 0.82;
-    let targetZ = -Math.abs(diff) * 0.22;
-    let targetRotY = -diff * 0.22;
-    let targetScale = (i === activeIndex) ? 1.0 : 0.74;
-    let targetOpacity = (i === activeIndex) ? 1.0 : 0.55;
-
-    mesh.position.x += (targetX - mesh.position.x) * 0.08;
-    mesh.position.z += (targetZ - mesh.position.z) * 0.08;
-    mesh.rotation.y += (targetRotY - mesh.rotation.y) * 0.08;
-
-    const currentScale = mesh.scale.x;
-    const newScale = currentScale + (targetScale - currentScale) * 0.08;
-    mesh.scale.set(newScale, newScale, newScale);
-
-    if (mesh.material) {
-      mesh.material.opacity += (targetOpacity - mesh.material.opacity) * 0.08;
-    }
-
-    // Keep card firmly grounded on pedestal (no artificial vertical bobbing)
-    mesh.position.y = 0;
-  });
-}
-
 function updateStoryProgress() {
-  if (!isAutoPlaying) return;
+  if (!isAutoPlaying || CONFIG.layout === 'triptych') return;
 
   const now = performance.now();
   const elapsed = now - slideStartTime;
   const progress = Math.min(1.0, elapsed / DURATION_PER_CARD);
 
   fills.forEach((fill, i) => {
-    if (i < activeIndex) {
-      fill.style.width = '100%';
-    } else if (i === activeIndex) {
-      fill.style.width = (progress * 100) + '%';
-    } else {
-      fill.style.width = '0%';
-    }
+    if (i < activeIndex) fill.style.width = '100%';
+    else if (i === activeIndex) fill.style.width = (progress * 100) + '%';
+    else fill.style.width = '0%';
   });
 
   if (elapsed >= DURATION_PER_CARD) {
@@ -911,26 +955,17 @@ function updateStoryProgress() {
 }
 
 function closeAR() {
-  if (mindarThree) {
-    mindarThree.stop();
-  }
+  if (mindarThree) mindarThree.stop();
   landing.style.display = 'flex';
-  arContainer.style.display = 'none';
+  document.getElementById('ar-container').style.display = 'none';
   scannerOverlay.style.display = 'none';
   ui.style.display = 'none';
 }
 
 // Event Listeners
-cardTabBtns.forEach(btn => {
-  btn.onclick = () => {
-    const idx = parseInt(btn.dataset.index);
-    setCard(idx);
-  };
-});
-
 prevBtn.onclick = () => setCard(activeIndex - 1);
 nextBtn.onclick = () => setCard(activeIndex + 1);
-document.getElementById('start').onclick = startCardAnchoredAR;
+document.getElementById('start').onclick = startWebAR;
 closeBtn.onclick = closeAR;
 musicBtn.onclick = toggleAudio;
 dismissError.onclick = () => { errorBox.style.display = 'none'; };
