@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#111215">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Hera Pheri · WebAR Holographic Pop-Out Experience</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+  }
+}
+</script>
+
+<style>
+  :root {
+    --gold: #ffbe1a;
+    --gold-glow: rgba(255, 190, 26, 0.45);
+    --red: #e62129;
+    --dark: #0d0f12;
+    --card-bg: rgba(18, 20, 26, 0.88);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; background: var(--dark); color: #fff;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  /* MindAR Fullscreen Camera Viewport */
+  #ar-container {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    overflow: hidden; z-index: 0; display: none;
+  }
+
+  /* Hidden native video element */
+  #arVideo {
+    display: none;
+  }
+
+  /* Landing Screen */
+  #landing {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; text-align: center;
+    background: radial-gradient(circle at 50% 25%, rgba(255, 190, 26, 0.2), transparent 60%),
+                linear-gradient(175deg, #181b22, #0d0f12 70%);
+    overflow-y: auto;
+  }
+
+  .landing-card {
+    max-width: 440px; width: 100%;
+    border: 1.5px solid rgba(255, 190, 26, 0.4);
+    border-radius: 26px; padding: 30px 22px;
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px var(--gold-glow);
+    position: relative;
+  }
+
+  .badge-icon {
+    width: 68px; height: 68px; border-radius: 50%;
+    margin: 0 auto 14px;
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; box-shadow: 0 8px 24px rgba(255, 165, 0, 0.45);
+  }
+
+  .title-tag {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+  }
+
+  h1 {
+    font-family: 'Bungee', cursive, sans-serif;
+    font-size: clamp(28px, 8vw, 38px);
+    line-height: 1.1; margin: 4px 0 10px;
+    background: linear-gradient(135deg, #fff7d6, #ffbe1a 50%, #e62129);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 14px rgba(230, 33, 41, 0.4));
+  }
+
+  .tagline {
+    font-size: 13.5px; color: #d0d6e2; line-height: 1.5;
+    margin-bottom: 20px; font-weight: 500;
+  }
+
+  .target-thumb-container {
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(255, 190, 26, 0.4);
+    border-radius: 16px; padding: 12px;
+    margin: 14px 0 20px; display: flex; align-items: center; gap: 14px;
+    text-align: left;
+  }
+
+  .target-thumb {
+    width: 60px; height: 90px; object-fit: cover;
+    border-radius: 8px; border: 1px solid var(--gold);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+
+  .thumb-info { font-size: 12px; color: #e1e7f0; line-height: 1.4; }
+  .thumb-info b { color: var(--gold); display: block; margin-bottom: 2px; font-size: 12.5px; }
+
+  .btn-launch {
+    width: 100%; padding: 16px 24px;
+    border: none; border-radius: 999px;
+    background: linear-gradient(135deg, #ffc837, #ff8008);
+    color: #12100a; font-family: 'Montserrat', sans-serif;
+    font-size: 15px; font-weight: 800; letter-spacing: 0.05em;
+    text-transform: uppercase; cursor: pointer;
+    box-shadow: 0 10px 30px rgba(255, 128, 8, 0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-launch:active { transform: scale(0.97); }
+
+  .btn-outline {
+    width: 100%; margin-top: 10px; padding: 12px 20px;
+    border: 1px solid rgba(255, 190, 26, 0.4); border-radius: 999px;
+    background: rgba(255, 190, 26, 0.08); color: var(--gold);
+    font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .btn-outline:hover { background: rgba(255, 190, 26, 0.18); }
+
+  /* Loading Overlay */
+  #loading-view {
+    position: fixed; inset: 0; z-index: 25;
+    background: rgba(13, 15, 18, 0.96); backdrop-filter: blur(12px);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; padding: 20px;
+  }
+  .spinner {
+    width: 54px; height: 54px;
+    border: 3.5px solid rgba(255, 190, 26, 0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 18px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .load-text { font-size: 14px; font-weight: 600; color: #ffd978; letter-spacing: 0.04em; }
+
+  /* Scanning Viewfinder Overlay (Matches 1280x1920 poster aspect ratio ~0.667) */
+  #scanner-overlay {
+    position: fixed; inset: 0; z-index: 10; pointer-events: none;
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  .scanner-box {
+    width: min(72vw, 290px); height: calc(min(72vw, 290px) * 1.5);
+    border: 2px dashed rgba(255, 190, 26, 0.75); border-radius: 18px;
+    position: relative; animation: pulseScan 2.4s infinite ease-in-out;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  }
+  .scanner-box::after {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, #ffbe1a, #ff4500, transparent);
+    box-shadow: 0 0 16px #ffbe1a;
+    animation: scanLine 2.2s infinite ease-in-out;
+  }
+  @keyframes scanLine {
+    0% { top: 2%; opacity: 0.3; }
+    50% { top: 96%; opacity: 1; }
+    100% { top: 2%; opacity: 0.3; }
+  }
+  @keyframes pulseScan {
+    0%, 100% { border-color: rgba(255, 190, 26, 0.45); }
+    50% { border-color: rgba(255, 220, 100, 1); }
+  }
+  .scanner-hint {
+    margin-top: 20px;
+    background: rgba(18, 20, 26, 0.92);
+    border: 1px solid rgba(255, 190, 26, 0.5);
+    padding: 10px 22px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; color: var(--gold);
+    letter-spacing: 0.05em; text-transform: uppercase;
+    backdrop-filter: blur(10px); box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+  }
+
+  /* HUD Active AR Overlay */
+  #hud {
+    position: fixed; inset: 0; z-index: 15;
+    display: none; pointer-events: none;
+  }
+  .hud-topbar {
+    position: absolute; top: env(safe-area-inset-top, 16px);
+    left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .hud-badge {
+    background: rgba(18, 20, 26, 0.88);
+    border: 1px solid rgba(255, 190, 26, 0.4);
+    padding: 7px 14px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; color: #fff;
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .badge-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #00ff88; box-shadow: 0 0 10px #00ff88;
+  }
+  .badge-dot.lost {
+    background: #ffaa00; box-shadow: 0 0 10px #ffaa00;
+  }
+
+  .hud-actions { display: flex; gap: 8px; pointer-events: auto; }
+  .icon-btn {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid rgba(255, 190, 26, 0.4);
+    background: rgba(18, 20, 26, 0.85); color: var(--gold);
+    font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(10px); box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    transition: transform 0.15s, background 0.2s;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+
+  /* Bottom Controls Dock */
+  .hud-bottom {
+    position: absolute; bottom: env(safe-area-inset-bottom, 20px);
+    left: 14px; right: 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    pointer-events: auto;
+  }
+
+  .dialogue-banner {
+    background: rgba(18, 20, 26, 0.92);
+    border: 1px solid rgba(255, 190, 26, 0.45);
+    border-radius: 16px; padding: 10px 18px;
+    max-width: 380px; width: 100%; text-align: center;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+  }
+  .dialogue-title {
+    font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em;
+    color: var(--gold); text-transform: uppercase; margin-bottom: 2px;
+  }
+  .dialogue-text {
+    font-size: 12.5px; font-weight: 600; color: #fff; line-height: 1.35;
+  }
+
+  .quick-controls {
+    display: flex; gap: 8px;
+  }
+  .control-chip {
+    background: rgba(255, 190, 26, 0.15);
+    border: 1px solid rgba(255, 190, 26, 0.4);
+    border-radius: 999px; padding: 8px 14px;
+    font-size: 11.5px; font-weight: 700; color: #ffd768;
+    cursor: pointer; backdrop-filter: blur(8px);
+    transition: background 0.2s;
+  }
+  .control-chip.active {
+    background: var(--gold); color: #12100a;
+  }
+
+  /* Target Card Modal (For testing on second screen or printing) */
+  #target-modal {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(14px);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-box {
+    max-width: 400px; width: 100%; background: #151820;
+    border: 1px solid rgba(255, 190, 26, 0.5); border-radius: 22px;
+    padding: 22px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+  }
+  .modal-box h3 {
+    margin: 0 0 8px; font-family: 'Bungee', cursive, sans-serif;
+    font-size: 20px; color: var(--gold);
+  }
+  .modal-box p {
+    font-size: 12px; color: #c4ccda; line-height: 1.45; margin-bottom: 14px;
+  }
+  .modal-img-wrap {
+    background: #000; padding: 6px; border-radius: 12px;
+    border: 1px solid rgba(255, 190, 26, 0.3); display: inline-block;
+    margin-bottom: 14px;
+  }
+  .modal-img {
+    display: block; width: 100%; max-width: 240px; border-radius: 8px;
+  }
+  .btn-modal-close {
+    width: 100%; padding: 12px; border: none; border-radius: 999px;
+    background: var(--gold); color: #12100a; font-size: 13px; font-weight: 800;
+    cursor: pointer; text-transform: uppercase;
+  }
+
+  /* Error Notice */
+  #error-box {
+    position: fixed; bottom: 30px; left: 20px; right: 20px; z-index: 50;
+    background: #2a1012; border: 1px solid #ff4545; border-radius: 16px;
+    padding: 16px 20px; color: #ffb4b4; display: none; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- Hidden HTML5 Video with Full Audio -->
+<video id="arVideo" src="./video.mp4" playsinline webkit-playsinline preload="auto" loop crossorigin="anonymous"></video>
+
+<!-- MindAR Fullscreen Viewport -->
+<div id="ar-container"></div>
+
+<!-- Landing Screen -->
+<div id="landing">
+  <div class="landing-card">
+    <div class="badge-icon">🎬</div>
+    <div class="title-tag">Holographic WebAR Experience</div>
+    <h1>HERA PHERI</h1>
+    <p class="tagline">Experience Raju popping out of the poster in live 3D with synchronized voice &amp; dialogue!</p>
+
+    <div class="target-thumb-container">
+      <img src="./target_card.jpg" class="target-thumb" alt="Hera Pheri Poster Target">
+      <div class="thumb-info">
+        <b>Target Poster Ready</b>
+        Aim your phone camera at this poster to anchor Raju standing right in your room!
+      </div>
+    </div>
+
+    <button class="btn-launch" id="launchBtn">
+      <span>🚀</span> Launch AR Experience
+    </button>
+    <button class="btn-outline" id="viewPosterBtn">
+      🖼️ Show Target Poster On Screen
+    </button>
+  </div>
+</div>
+
+<!-- Loading View -->
+<div id="loading-view">
+  <div class="spinner"></div>
+  <div class="load-text" id="loadStatus">Initializing Camera &amp; AI Tracker...</div>
+</div>
+
+<!-- Scanning Viewfinder -->
+<div id="scanner-overlay">
+  <div class="scanner-box"></div>
+  <div class="scanner-hint">✨ Aim camera at Hera Pheri Poster</div>
+</div>
+
+<!-- Active AR HUD -->
+<div id="hud">
+  <div class="hud-topbar">
+    <div class="hud-badge" id="hudStatus">
+      <div class="badge-dot lost" id="hudDot"></div>
+      <span id="hudStatusText">Searching for Poster...</span>
+    </div>
+    <div class="hud-actions">
+      <button class="icon-btn" id="audioBtn" title="Toggle Audio">🔊</button>
+      <button class="icon-btn" id="playBtn" title="Play/Pause Video">⏸️</button>
+      <button class="icon-btn" id="posterModalBtn" title="View Target Poster">🖼️</button>
+      <button class="icon-btn" id="exitBtn" title="Exit AR">✕</button>
+    </div>
+  </div>
+
+  <div class="hud-bottom">
+    <div class="dialogue-banner">
+      <div class="dialogue-title">⭐ Iconic Scene</div>
+      <div class="dialogue-text">"Yeh Raju ka style hai!" — Pop-Out Hologram Active</div>
+    </div>
+    <div class="quick-controls">
+      <button class="control-chip active" id="modeStandingBtn">🧍 3D Standing</button>
+      <button class="control-chip" id="modeFlatBtn">📄 Flush on Poster</button>
+      <button class="control-chip" id="replayBtn">🔄 Replay</button>
+    </div>
+  </div>
+</div>
+
+<!-- Target Poster Modal (For second phone / laptop display) -->
+<div id="target-modal">
+  <div class="modal-box">
+    <h3>Poster Target</h3>
+    <p>Display this poster image on a second screen or print it out. Aim your phone at it to make Raju pop out!</p>
+    <div class="modal-img-wrap">
+      <img src="./target_card.jpg" class="modal-img" alt="Hera Pheri Poster Target">
+    </div>
+    <button class="btn-modal-close" id="closeModalBtn">Close / Resume Scanning</button>
+  </div>
+</div>
+
+<!-- Error Box -->
+<div id="error-box">
+  <div id="errorMessage">Camera access required to view AR.</div>
+</div>
+
+<!-- WebAR Three.js & MindAR Logic -->
+<script type="module">
+import * as THREE from 'three';
+import { MindARThree } from 'mindar-image-three';
+
+// DOM Elements
+const landing = document.getElementById('landing');
+const launchBtn = document.getElementById('launchBtn');
+const viewPosterBtn = document.getElementById('viewPosterBtn');
+const loadingView = document.getElementById('loading-view');
+const loadStatus = document.getElementById('loadStatus');
+const scannerOverlay = document.getElementById('scanner-overlay');
+const arContainer = document.getElementById('ar-container');
+const hud = document.getElementById('hud');
+const hudDot = document.getElementById('hudDot');
+const hudStatusText = document.getElementById('hudStatusText');
+const audioBtn = document.getElementById('audioBtn');
+const playBtn = document.getElementById('playBtn');
+const posterModalBtn = document.getElementById('posterModalBtn');
+const exitBtn = document.getElementById('exitBtn');
+const targetModal = document.getElementById('target-modal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const modeStandingBtn = document.getElementById('modeStandingBtn');
+const modeFlatBtn = document.getElementById('modeFlatBtn');
+const replayBtn = document.getElementById('replayBtn');
+const video = document.getElementById('arVideo');
+const errorBox = document.getElementById('error-box');
+const errorMessage = document.getElementById('errorMessage');
+
+// State
+let mindarThree = null;
+let anchor = null;
+let videoMesh = null;
+let shadowMesh = null;
+let stageRing = null;
+let sparklesGroup = null;
+let isStandingMode = true;
+let isTargetFound = false;
+
+// Poster aspect ratio: 1280 x 1920 -> 1.0 width, 1.5 height
+const POSTER_WIDTH = 1.0;
+const POSTER_HEIGHT = 1.5;
+
+// Video aspect ratio: 1080 x 1920 -> 0.5625
+// Scaled so height is ~1.4 (stands comfortably within/slightly taller than poster)
+const VIDEO_HEIGHT = 1.35;
+const VIDEO_WIDTH = VIDEO_HEIGHT * (1080 / 1920); // ~0.76
+
+// ── Chroma-Key Real-Time Shader Material ─────────────────────────────────────
+// Calibrated precisely to the sampled green background: RGB(45, 192, 1)
+function createChromaMaterial(videoTexture) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uTexture: { value: videoTexture },
+      uKeyColor: { value: new THREE.Color(45/255, 192/255, 1/255) }, // sampled exact green
+      uSimilarity: { value: 0.40 }, // distance threshold
+      uSmoothness: { value: 0.10 }, // edge softness
+      uSpill: { value: 0.65 }       // green spill suppression factor
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D uTexture;
+      uniform vec3 uKeyColor;
+      uniform float uSimilarity;
+      uniform float uSmoothness;
+      uniform float uSpill;
+      varying vec2 vUv;
+
+      void main() {
+        vec4 color = texture2D(uTexture, vUv);
+        
+        // Euclidean color distance in RGB space
+        float dist = distance(color.rgb, uKeyColor);
+        
+        // Smoothstep alpha mask
+        float alpha = smoothstep(uSimilarity, uSimilarity + uSmoothness, dist);
+        
+        // Green spill suppression: desaturate excessive green reflections on skin/shirt
+        float maxRb = max(color.r, color.b);
+        if (color.g > maxRb) {
+          color.g = mix(color.g, maxRb, uSpill);
+        }
+
+        if (alpha < 0.02) discard;
+        
+        gl_FragColor = vec4(color.rgb, color.a * alpha);
+      }
+    `,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+}
+
+// ── Soft Contact Shadow Texture Generator ────────────────────────────────────
+function createRadialShadowTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createRadialGradient(128, 128, 10, 128, 128, 120);
+  gradient.addColorStop(0, 'rgba(0,0,0,0.75)');
+  gradient.addColorStop(0.5, 'rgba(0,0,0,0.35)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 256, 256);
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
+// ── Cinematic Sparkle Particles ──────────────────────────────────────────────
+function createSparkles() {
+  const group = new THREE.Group();
+  const particleCount = 28;
+  const geo = new THREE.PlaneGeometry(0.028, 0.028);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xffe066,
+    transparent: true,
+    opacity: 0.8,
+    side: THREE.DoubleSide
+  });
+
+  for (let i = 0; i < particleCount; i++) {
+    const p = new THREE.Mesh(geo, mat.clone());
+    p.position.set(
+      (Math.random() - 0.5) * 0.9,
+      (Math.random() - 0.5) * 1.2,
+      (Math.random() - 0.5) * 0.4
+    );
+    p.userData = {
+      speedY: 0.003 + Math.random() * 0.005,
+      driftX: (Math.random() - 0.5) * 0.002,
+      rotSpeed: (Math.random() - 0.5) * 0.05,
+      baseOpacity: 0.4 + Math.random() * 0.5
+    };
+    group.add(p);
+  }
+  return group;
+}
+
+// ── Start WebAR Pipeline ─────────────────────────────────────────────────────
+async function startAR() {
+  landing.style.display = 'none';
+  loadingView.style.display = 'flex';
+  loadStatus.textContent = 'Unlocking Video & Camera...';
+
+  // Mobile audio unlock: play & un-mute video on user gesture
+  try {
+    video.muted = false;
+    await video.play();
+  } catch (audioErr) {
+    console.warn('Initial unmuted play blocked, falling back to muted play:', audioErr);
+    video.muted = true;
+    try { await video.play(); } catch(e) {}
+  }
+
+  // Ensure AR container is visible before MindAR starts
+  arContainer.style.display = 'block';
+
+  try {
+    mindarThree = new MindARThree({
+      container: arContainer,
+      imageTargetSrc: './targets.mind',
+      filterMinCF: 0.0001,
+      filterBeta: 0.01,
+      warmupTolerance: 3,
+      missTolerance: 10,
+      uiLoading: "no",
+      uiScanning: "no"
+    });
+
+    const { renderer, scene, camera } = mindarThree;
+
+    // Ambient Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    scene.add(ambientLight);
+
+    // Anchor to Target Poster (index 0)
+    anchor = mindarThree.addAnchor(0);
+
+    // ── 1. Ornate Golden Stage Ring resting flat on the poster ──
+    const ringGeo = new THREE.RingGeometry(0.36, 0.42, 48);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffbe1a,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85
+    });
+    stageRing = new THREE.Mesh(ringGeo, ringMat);
+    stageRing.position.set(0, -0.45, 0.005);
+    anchor.group.add(stageRing);
+
+    // ── 2. Contact Ground Shadow beneath Raju's feet ──
+    const shadowGeo = new THREE.PlaneGeometry(0.7, 0.35);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: createRadialShadowTexture(),
+      transparent: true,
+      opacity: 0.65,
+      depthWrite: false
+    });
+    shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.position.set(0, -0.45, 0.008);
+    anchor.group.add(shadowMesh);
+
+    // ── 3. Video Texture & Chroma Shader Mesh ──
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.colorSpace = THREE.SRGBColorSpace;
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+
+    const chromaMat = createChromaMaterial(videoTexture);
+    const videoGeo = new THREE.PlaneGeometry(VIDEO_WIDTH, VIDEO_HEIGHT);
+    videoMesh = new THREE.Mesh(videoGeo, chromaMat);
+
+    // Apply initial standing mode:
+    // In standing mode: character stands upright on the poster plane (rotX = 90 deg)
+    applyOrientationMode(isStandingMode);
+    anchor.group.add(videoMesh);
+
+    // ── 4. Cinematic Sparkles ──
+    sparklesGroup = createSparkles();
+    anchor.group.add(sparklesGroup);
+
+    // Target Found & Lost Callbacks
+    anchor.onTargetFound = () => {
+      isTargetFound = true;
+      scannerOverlay.style.display = 'none';
+      hudDot.className = 'badge-dot';
+      hudStatusText.textContent = 'Poster Locked • Raju Speaking';
+      if (video.paused) {
+        video.play().catch(e => console.warn(e));
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(80); } catch(e) {}
+      }
+    };
+
+    anchor.onTargetLost = () => {
+      isTargetFound = false;
+      scannerOverlay.style.display = 'flex';
+      hudDot.className = 'badge-dot lost';
+      hudStatusText.textContent = 'Searching for Poster...';
+    };
+
+    // Start MindAR
+    await mindarThree.start();
+
+    loadingView.style.display = 'none';
+    scannerOverlay.style.display = 'flex';
+    hud.style.display = 'block';
+
+    // Animation Loop
+    renderer.setAnimationLoop(() => {
+      // Rotate stage ring
+      if (stageRing) stageRing.rotation.z += 0.008;
+
+      // Animate floating sparkles
+      if (sparklesGroup && isTargetFound) {
+        sparklesGroup.children.forEach(p => {
+          p.position.y += p.userData.speedY;
+          p.position.x += p.userData.driftX;
+          p.rotation.z += p.userData.rotSpeed;
+          if (p.position.y > 0.8) {
+            p.position.y = -0.5;
+            p.position.x = (Math.random() - 0.5) * 0.9;
+          }
+        });
+      }
+
+      renderer.render(scene, camera);
+    });
+
+  } catch (err) {
+    console.error('AR Tracker Error:', err);
+    loadingView.style.display = 'none';
+    arContainer.style.display = 'none';
+    errorMessage.textContent = err?.message || 'Camera access or WebGL initialization failed.';
+    errorBox.style.display = 'block';
+  }
+}
+
+// ── Switch Between 3D Standing vs Flush Mode ─────────────────────────────────
+function applyOrientationMode(standing) {
+  isStandingMode = standing;
+  if (!videoMesh) return;
+
+  if (isStandingMode) {
+    // Standing Upright: rotated 90 degrees on X so Raju stands perpendicular to card
+    // Lower edge grounded at y = -0.45
+    videoMesh.rotation.set(Math.PI / 2, 0, 0);
+    videoMesh.position.set(0, -0.45, VIDEO_HEIGHT / 2);
+    if (shadowMesh) shadowMesh.visible = true;
+    if (stageRing) stageRing.visible = true;
+    modeStandingBtn.classList.add('active');
+    modeFlatBtn.classList.remove('active');
+  } else {
+    // Flush Poster Mode: floats directly in front of the poster along Z
+    videoMesh.rotation.set(0, 0, 0);
+    videoMesh.position.set(0, 0, 0.12);
+    if (shadowMesh) shadowMesh.visible = false;
+    if (stageRing) stageRing.visible = false;
+    modeFlatBtn.classList.add('active');
+    modeStandingBtn.classList.remove('active');
+  }
+}
+
+// ── Event Handlers ───────────────────────────────────────────────────────────
+launchBtn.addEventListener('click', startAR);
+
+viewPosterBtn.addEventListener('click', () => { targetModal.style.display = 'flex'; });
+posterModalBtn.addEventListener('click', () => { targetModal.style.display = 'flex'; });
+closeModalBtn.addEventListener('click', () => { targetModal.style.display = 'none'; });
+
+audioBtn.addEventListener('click', () => {
+  video.muted = !video.muted;
+  audioBtn.textContent = video.muted ? '🔇' : '🔊';
+});
+
+playBtn.addEventListener('click', () => {
+  if (video.paused) {
+    video.play();
+    playBtn.textContent = '⏸️';
+  } else {
+    video.pause();
+    playBtn.textContent = '▶️';
+  }
+});
+
+replayBtn.addEventListener('click', () => {
+  video.currentTime = 0;
+  video.play();
+  playBtn.textContent = '⏸️';
+});
+
+modeStandingBtn.addEventListener('click', () => applyOrientationMode(true));
+modeFlatBtn.addEventListener('click', () => applyOrientationMode(false));
+
+exitBtn.addEventListener('click', () => {
+  window.location.reload();
+});
+</script>
+</body>
+</html>
