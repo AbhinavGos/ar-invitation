@@ -35,36 +35,8 @@
   html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg-dark);color:var(--text-main);font-family:'Montserrat',sans-serif;-webkit-tap-highlight-color:transparent}
   body{touch-action:manipulation}
 
-  /* MindAR container: fills viewport */
-  #ar-container{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;z-index:0;display:none}
-
-  /* Landing Screen */
-  #landing{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;background:
-    radial-gradient(circle at 50% 22%,rgba(235,188,90,.25),transparent 40%),
-    linear-gradient(160deg,#1f090d,#3d0e16 50%,#160508);overflow-y:auto}
-
-  .card-frame{max-width:520px;width:100%;border:1px solid var(--border-gold);border-radius:24px;padding:32px 22px;background:rgba(28,9,14,.88);backdrop-filter:blur(14px);box-shadow:0 16px 48px rgba(0,0,0,.75),inset 0 0 24px rgba(235,188,90,.18);position:relative}
-  .card-frame::before{content:"";position:absolute;inset:6px;border:1px dashed rgba(235,188,90,.35);border-radius:18px;pointer-events:none}
-
-  .monogram{font-family:'Great Vibes',cursive;font-size:54px;color:var(--accent-gold);line-height:1;margin-bottom:6px;text-shadow:0 2px 10px rgba(243,207,122,.4)}
-  .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#e6b356;margin-bottom:10px;font-weight:600}
-  h1{font-family:'Cinzel',serif;font-size:clamp(30px,8vw,52px);font-weight:700;line-height:1.08;margin:8px 0;background:linear-gradient(135deg,#fff2d1,#f5cb6c 50%,#d49e35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 4px 20px rgba(0,0,0,.5)}
-  .subtitle{font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.45;font-weight:400}
-
-  .preview-strip{display:flex;gap:8px;justify-content:center;margin:16px 0}
-  .preview-badge{flex:1;background:rgba(235,188,90,.08);border:1px solid var(--border-gold);border-radius:14px;padding:8px 6px;font-size:10px;color:var(--accent-gold)}
-  .preview-badge b{display:block;font-family:'Cinzel',serif;font-size:11px;color:#fff;margin-bottom:2px}
-
-  .permissions-box{background:rgba(235,188,90,.07);border:1px solid rgba(235,188,90,.25);border-radius:16px;padding:14px;margin:16px 0;text-align:left}
-  .perm-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.12em;color:var(--accent-gold);text-transform:uppercase;margin-bottom:8px;font-weight:700;display:flex;align-items:center;gap:6px}
-  .perm-item{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--text-muted);margin-bottom:6px}
-  .perm-item:last-child{margin-bottom:0}
-  .perm-icon{font-size:15px;width:22px;text-align:center;flex-shrink:0}
-
-  .btn-gold{margin-top:10px;padding:16px 32px;border:1px solid rgba(255,225,150,.8);border-radius:999px;background:linear-gradient(135deg,#f7d785,#d9a138 50%,#b37b1b);color:#21080b;font-family:'Cinzel',serif;font-weight:700;letter-spacing:.08em;font-size:14px;cursor:pointer;box-shadow:0 8px 28px rgba(217,161,56,.35);transition:transform .2s,box-shadow .2s;width:100%}
-  .btn-gold:active{transform:scale(.97)}
-
-  .btn-secondary{margin-top:10px;padding:12px 20px;border:1px solid rgba(235,188,90,.4);border-radius:999px;background:rgba(235,188,90,.12);color:var(--accent-gold);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;cursor:pointer;width:100%}
+  /* MindAR container: fills viewport directly */
+  #ar-container{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;z-index:0;display:block}
 
   /* Scanning Viewfinder Overlay (Portrait Aspect Ratio ~ 1 : 1.55 for Wedding Cards) */
   #scanner-overlay{position:fixed;inset:0;z-index:10;display:none;pointer-events:none;align-items:center;justify-content:center;flex-direction:column}
@@ -110,7 +82,7 @@
   .target-img-preview{width:100%;border-radius:14px;border:1px solid var(--border-gold);box-shadow:0 8px 24px rgba(0,0,0,.6)}
   .close-modal-btn{margin-top:16px;padding:12px 24px;border-radius:999px;border:1px solid var(--border-gold);background:linear-gradient(135deg,#f7d785,#d9a138);color:#21080b;font-family:'Cinzel',serif;font-weight:700;font-size:12px;cursor:pointer;width:100%}
 
-  #loading-view{position:fixed;inset:0;z-index:25;background:var(--bg-dark);display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px}
+  #loading-view{position:fixed;inset:0;z-index:25;background:var(--bg-dark);display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px}
   .spinner{width:48px;height:48px;border:4px solid rgba(245,203,108,.2);border-top-color:var(--accent-gold);border-radius:50%;animation:spin 1s infinite linear}
   @keyframes spin{to{transform:rotate(360deg)}}
   .load-text{margin-top:18px;font-family:'Cinzel',serif;font-size:14px;color:var(--accent-gold);letter-spacing:.1em}
@@ -123,31 +95,13 @@
 </head>
 <body>
 
-<div id="landing">
-  <div class="card-frame">
-    <div class="monogram" id="landingMonogram">✦</div>
-    <div class="eyebrow" id="landingEyebrow">Card-Anchored AR Invitation</div>
-    <h1 id="landingTitle">AR Invitation</h1>
-    <div class="subtitle" id="landingSubtitle">Point your camera at the physical card. The 3D cards will pop up vertically standing anchored to the card!</div>
+<!-- AR Container (Camera video background) -->
+<div id="ar-container"></div>
 
-    <div class="preview-strip" id="previewStrip">
-      <!-- Injected dynamically -->
-    </div>
-
-    <div class="permissions-box">
-      <div class="perm-title">✨ Card-Anchored AR Ready</div>
-      <div class="perm-item"><span class="perm-icon">📷</span><span><b>Card Scanning:</b> Recognizes the physical card image and locks 3D scenes to it.</span></div>
-      <div class="perm-item"><span class="perm-icon">🎵</span><span><b>Acoustic Audio:</b> Low-latency procedural synth harmonized with the theme.</span></div>
-    </div>
-
-    <button class="btn-gold" id="start">Scan Card &amp; Launch AR ✨</button>
-    <button class="btn-secondary" id="viewCardBtn">🎴 View / Test Card On Screen</button>
-  </div>
-</div>
-
+<!-- Loading View -->
 <div id="loading-view">
   <div class="spinner"></div>
-  <div class="load-text" id="loadStatus">Starting Card Tracker...</div>
+  <div class="load-text" id="loadStatus">Starting Camera &amp; Card Tracker...</div>
 </div>
 
 <!-- Scanning Viewfinder -->
@@ -166,16 +120,14 @@
   </div>
 </div>
 
-<!-- AR Container -->
-<div id="ar-container"></div>
-
 <!-- AR Overlay UI -->
 <div id="ui">
   <div class="topbar">
     <div class="brand" id="topBrand">AR Experience</div>
     <div class="top-actions">
+      <button class="icon-btn" id="viewCardBtn" title="View Target Card">🎴</button>
       <button class="icon-btn" id="musicBtn" aria-label="Toggle Music">🔊</button>
-      <button class="icon-btn" id="closeBtn" aria-label="Close AR">×</button>
+      <button class="icon-btn" id="closeBtn" aria-label="Restart AR">↺</button>
     </div>
   </div>
 
@@ -287,26 +239,16 @@ const currentTheme = THEMES[CONFIG.theme] || THEMES["royal-wedding"];
 document.documentElement.style.setProperty('--bg-dark', currentTheme.bgDark);
 document.documentElement.style.setProperty('--accent-gold', currentTheme.accent);
 document.documentElement.style.setProperty('--border-gold', currentTheme.border);
-document.getElementById('landingMonogram').textContent = currentTheme.monogram;
-document.getElementById('landingEyebrow').textContent = currentTheme.eyebrow;
-document.getElementById('landingTitle').textContent = CONFIG.name;
 document.getElementById('topBrand').textContent = CONFIG.name;
 
-// Populate preview badges and UI tabs
-const previewStrip = document.getElementById('previewStrip');
+// Populate UI progress and ceremony tabs
 const storyProgress = document.getElementById('storyProgress');
 const cardTabs = document.getElementById('cardTabs');
 
-previewStrip.innerHTML = '';
 storyProgress.innerHTML = '';
 cardTabs.innerHTML = '';
 
 CONFIG.cards.forEach((c, idx) => {
-  const pBadge = document.createElement('div');
-  pBadge.className = 'preview-badge';
-  pBadge.innerHTML = `<b>${c.date.split('·')[0].trim()}</b>${c.title}`;
-  previewStrip.appendChild(pBadge);
-
   const pSeg = document.createElement('div');
   pSeg.className = 'progress-bar-segment';
   pSeg.innerHTML = '<div class="progress-bar-fill"></div>';
@@ -321,7 +263,6 @@ CONFIG.cards.forEach((c, idx) => {
 });
 
 // UI References
-const landing = document.getElementById('landing');
 const loadingView = document.getElementById('loading-view');
 const loadStatus = document.getElementById('loadStatus');
 const scannerOverlay = document.getElementById('scanner-overlay');
@@ -590,9 +531,26 @@ function initAudioTrack() {
       bgAudio.loop = true;
       bgAudio.volume = 0.75;
     }
-    bgAudio.play().catch(e => console.warn('Audio auto-play prevented:', e));
-    isMuted = false;
-    musicBtn.textContent = '🔊';
+    bgAudio.play().then(() => {
+      isMuted = false;
+      musicBtn.textContent = '🔊';
+    }).catch(e => {
+      console.warn('Audio auto-play prevented by browser policy, unlocking on first interaction:', e);
+      isMuted = true;
+      musicBtn.textContent = '🔈';
+      const unlockAudio = () => {
+        if (bgAudio && bgAudio.paused) {
+          bgAudio.play().then(() => {
+            isMuted = false;
+            musicBtn.textContent = '🔊';
+          }).catch(() => {});
+        }
+        window.removeEventListener('touchstart', unlockAudio);
+        window.removeEventListener('click', unlockAudio);
+      };
+      window.addEventListener('touchstart', unlockAudio, { passive: true });
+      window.addEventListener('click', unlockAudio, { passive: true });
+    });
   } else {
     initProceduralAudio();
   }
@@ -621,7 +579,6 @@ function toggleAudio() {
 // WEBAR INITIALIZATION & 3D SCENE SETUP
 // ----------------------------------------------------------------------------
 async function startWebAR() {
-  landing.style.display = 'none';
   loadingView.style.display = 'flex';
   loadStatus.textContent = 'Starting Camera & Card Tracker...';
 
@@ -1023,21 +980,22 @@ function updateStoryProgress() {
 }
 
 function closeAR() {
-  if (mindarThree) mindarThree.stop();
-  if (bgAudio) { bgAudio.pause(); bgAudio.currentTime = 0; }
-  landing.style.display = 'flex';
-  document.getElementById('ar-container').style.display = 'none';
-  scannerOverlay.style.display = 'none';
-  ui.style.display = 'none';
+  if (mindarThree) {
+    try { mindarThree.stop(); } catch(e) {}
+  }
+  if (bgAudio) {
+    bgAudio.pause();
+    bgAudio.currentTime = 0;
+  }
+  window.location.reload();
 }
 
 // Event Listeners
 prevBtn.onclick = () => setCard(activeIndex - 1);
 nextBtn.onclick = () => setCard(activeIndex + 1);
-document.getElementById('start').onclick = startWebAR;
 closeBtn.onclick = closeAR;
 musicBtn.onclick = toggleAudio;
-dismissError.onclick = () => { errorBox.style.display = 'none'; };
+dismissError.onclick = () => { errorBox.style.display = 'none'; startWebAR(); };
 
 // Interactive Pinch-To-Zoom Touch Support
 let userZoom = 1.0;
@@ -1071,6 +1029,13 @@ window.addEventListener('touchend', (e) => {
     initialPinchDist = null;
   }
 }, { passive: true });
+
+// Automatically launch WebAR camera immediately on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startWebAR);
+} else {
+  startWebAR();
+}
 </script>
 </body>
 </html>
