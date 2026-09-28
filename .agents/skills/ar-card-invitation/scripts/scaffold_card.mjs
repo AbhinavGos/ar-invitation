@@ -17,9 +17,10 @@ function parseArgs() {
     cardDates: [],
     cardColors: [],
     mind: '',
+    audio: '',
     theme: 'royal-wedding',      // royal-wedding | haldi-garden | cocktail-glam | corporate-summit | minimal-luxury
     layout: 'hybrid',            // carousel | triptych | diorama | popout | hybrid
-    silhouette: 'arch',          // arch | scalloped | chamfer | deckled | portal | rect
+    silhouette: 'rect',          // arch | scalloped | chamfer | deckled | portal | rect
     depth: 'gold-foil',          // gold-foil | silver-chrome | paper-matte | neon-glow | flat
     anchor: 'back-edge',         // back-edge | center | offset
     outDir: '',
@@ -32,6 +33,7 @@ function parseArgs() {
     else if (arg === '--slug' && args[i + 1]) params.slug = args[++i];
     else if (arg === '--target' && args[i + 1]) params.target = args[++i];
     else if (arg === '--mind' && args[i + 1]) params.mind = args[++i];
+    else if (arg === '--audio' && args[i + 1]) params.audio = args[++i];
     else if (arg === '--cards' && args[i + 1]) params.cards = args[++i].split(',').map(s => s.trim());
     else if ((arg === '--cardTitles' || arg === '--card-titles') && args[i + 1]) params.cardTitles = args[++i].split(',').map(s => s.trim());
     else if ((arg === '--cardDates' || arg === '--card-dates') && args[i + 1]) params.cardDates = args[++i].split(',').map(s => s.trim());
@@ -90,6 +92,7 @@ async function main() {
   console.log(`Silhouette : ${params.silhouette} (arch | scalloped | chamfer | deckled | portal | rect)`);
   console.log(`Depth      : ${params.depth} (gold-foil | silver-chrome | paper-matte | neon-glow | flat)`);
   console.log(`Anchor     : ${params.anchor} (back-edge | center | offset)`);
+  console.log(`Audio      : ${params.audio || '(procedural synth tone)'}`);
   console.log(`OutDir     : ${params.outDir}`);
   console.log(`Target     : ${params.target || '(none provided, placeholder)'}`);
   console.log(`Cards      : ${params.cards.length ? params.cards.join(', ') : '(procedural fallback)'}`);
@@ -173,6 +176,16 @@ async function main() {
     ]
   };
 
+  // Handle custom audio file if provided
+  if (params.audio && fs.existsSync(params.audio)) {
+    const ext = path.extname(params.audio) || '.mp3';
+    const audioName = `audio${ext}`;
+    const destAudio = path.join(params.outDir, audioName);
+    fs.copyFileSync(params.audio, destAudio);
+    injectedConfig.audioUrl = `./${audioName}`;
+    console.log(`✅ Copied audio track to: ${destAudio}`);
+  }
+
   const configScript = `<script>window.AR_CONFIG = ${JSON.stringify(injectedConfig, null, 2)};</script>`;
   indexHtml = indexHtml.replace('</head>', `${configScript}\n</head>`);
 
@@ -188,10 +201,21 @@ async function main() {
       execSync(`git init`, { cwd: params.outDir, stdio: 'inherit' });
       try { execSync(`git branch -M master`, { cwd: params.outDir, stdio: 'inherit' }); } catch(bErr) {}
       execSync(`git add .`, { cwd: params.outDir, stdio: 'inherit' });
-      execSync(`git commit -m "Initial WebAR Card: ${params.name}"`, { cwd: params.outDir, stdio: 'inherit' });
+      try {
+        execSync(`git commit -m "WebAR Card: ${params.name}"`, { cwd: params.outDir, stdio: 'inherit' });
+      } catch (cErr) {
+        console.log(`ℹ️ Working tree clean or commit skipped.`);
+      }
       
-      console.log(`📡 Creating remote GitHub repository: AbhinavGos/${params.slug}...`);
-      execSync(`gh repo create AbhinavGos/${params.slug} --public --source=. --push`, { cwd: params.outDir, stdio: 'inherit' });
+      try {
+        console.log(`📡 Creating remote GitHub repository: AbhinavGos/${params.slug}...`);
+        execSync(`gh repo create AbhinavGos/${params.slug} --public --source=. --push`, { cwd: params.outDir, stdio: 'inherit' });
+      } catch (repoErr) {
+        console.log(`ℹ️ Remote repo already exists, pushing updates to origin master...`);
+        try { execSync(`git push origin master`, { cwd: params.outDir, stdio: 'inherit' }); } catch (pErr) {
+          try { execSync(`git push origin main`, { cwd: params.outDir, stdio: 'inherit' }); } catch (pErr2) {}
+        }
+      }
 
       console.log(`⚙️ Enabling GitHub Pages deployment...`);
       try {

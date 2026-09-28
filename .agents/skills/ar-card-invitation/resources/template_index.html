@@ -66,9 +66,9 @@
 
   .btn-secondary{margin-top:10px;padding:12px 20px;border:1px solid rgba(235,188,90,.4);border-radius:999px;background:rgba(235,188,90,.12);color:var(--accent-gold);font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;cursor:pointer;width:100%}
 
-  /* Scanning Viewfinder Overlay */
+  /* Scanning Viewfinder Overlay (Portrait Aspect Ratio ~ 1 : 1.55 for Wedding Cards) */
   #scanner-overlay{position:fixed;inset:0;z-index:10;display:none;pointer-events:none;align-items:center;justify-content:center;flex-direction:column}
-  .scanner-box{width:min(82vw,320px);height:min(52vw,203px);border:2px dashed rgba(245,203,108,.75);border-radius:18px;position:relative;animation:pulse-border 2s infinite ease-in-out}
+  .scanner-box{width:min(68vw,260px);height:min(105vw,400px);border:2px dashed rgba(245,203,108,.75);border-radius:18px;position:relative;animation:pulse-border 2s infinite ease-in-out}
   .scanner-box::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#ffd700,transparent);box-shadow:0 0 14px #ffd700;animation:scan-line 2.2s infinite ease-in-out}
   
   @keyframes scan-line{0%{top:0%} 50%{top:98%} 100%{top:0%}}
@@ -581,11 +581,40 @@ function initProceduralAudio() {
   }
 }
 
+let bgAudio = null;
+
+function initAudioTrack() {
+  if (CONFIG.audioUrl) {
+    if (!bgAudio) {
+      bgAudio = new Audio(CONFIG.audioUrl);
+      bgAudio.loop = true;
+      bgAudio.volume = 0.75;
+    }
+    bgAudio.play().catch(e => console.warn('Audio auto-play prevented:', e));
+    isMuted = false;
+    musicBtn.textContent = '🔊';
+  } else {
+    initProceduralAudio();
+  }
+}
+
 function toggleAudio() {
-  if (!audioCtx) initProceduralAudio();
-  else if (audioCtx.state === 'suspended') { audioCtx.resume(); isMuted = false; }
-  else { isMuted = !isMuted; }
-  musicBtn.textContent = isMuted ? '🔇' : '🔊';
+  if (CONFIG.audioUrl && bgAudio) {
+    if (bgAudio.paused) {
+      bgAudio.play().catch(e => {});
+      isMuted = false;
+      musicBtn.textContent = '🔊';
+    } else {
+      bgAudio.pause();
+      isMuted = true;
+      musicBtn.textContent = '🔇';
+    }
+  } else {
+    if (!audioCtx) initProceduralAudio();
+    else if (audioCtx.state === 'suspended') { audioCtx.resume(); isMuted = false; }
+    else { isMuted = !isMuted; }
+    musicBtn.textContent = isMuted ? '🔇' : '🔊';
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -596,7 +625,7 @@ async function startWebAR() {
   loadingView.style.display = 'flex';
   loadStatus.textContent = 'Starting Camera & Card Tracker...';
 
-  initProceduralAudio();
+  initAudioTrack();
 
   // Container must be visible before MindAR initialization
   const arContainer = document.getElementById('ar-container');
@@ -735,42 +764,7 @@ async function startWebAR() {
       cardMeshes.push(mesh);
     });
 
-    // In Diorama layout: add an architectural Jharokha Arch Portal in the foreground (z = 0.16)
-    if (CONFIG.layout === 'diorama') {
-      const archFrameGroup = new THREE.Group();
-      archFrameGroup.position.set(0, 0, 0.16);
-      
-      const pillarGeo = new THREE.CylinderGeometry(0.014, 0.018, cardHeight, 16);
-      pillarGeo.translate(0, cardHeight / 2, 0);
-      const pillarMat = new THREE.MeshStandardMaterial({
-        color: currentTheme.edgeColor,
-        metalness: 0.88,
-        roughness: 0.22
-      });
-      const leftPillar = new THREE.Mesh(pillarGeo, pillarMat);
-      leftPillar.position.set(-cardWidth / 2 - 0.02, 0, 0);
-      const rightPillar = new THREE.Mesh(pillarGeo, pillarMat);
-      rightPillar.position.set(cardWidth / 2 + 0.02, 0, 0);
-      archFrameGroup.add(leftPillar);
-      archFrameGroup.add(rightPillar);
 
-      // Arch Crown Torus at top
-      const archTopGeo = new THREE.TorusGeometry(cardWidth / 2 + 0.02, 0.014, 12, 32, Math.PI);
-      const archTopMesh = new THREE.Mesh(archTopGeo, pillarMat);
-      archTopMesh.position.set(0, cardHeight, 0);
-      archFrameGroup.add(archTopMesh);
-
-      // Hanging Golden Lanterns
-      const lanternGeo = new THREE.SphereGeometry(0.022, 16, 16);
-      const lanternMat = new THREE.MeshBasicMaterial({ color: 0xffe082 });
-      [-cardWidth / 2 + 0.06, cardWidth / 2 - 0.06].forEach(lx => {
-        const lantern = new THREE.Mesh(lanternGeo, lanternMat);
-        lantern.position.set(lx, cardHeight - 0.05, 0.01);
-        archFrameGroup.add(lantern);
-      });
-
-      cardsGroup.add(archFrameGroup);
-    }
 
     // ── 4. Thematic Particles ──
     particlesGroup = new THREE.Group();
@@ -1027,6 +1021,7 @@ function updateStoryProgress() {
 
 function closeAR() {
   if (mindarThree) mindarThree.stop();
+  if (bgAudio) { bgAudio.pause(); bgAudio.currentTime = 0; }
   landing.style.display = 'flex';
   document.getElementById('ar-container').style.display = 'none';
   scannerOverlay.style.display = 'none';

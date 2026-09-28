@@ -119,10 +119,12 @@ node scripts/scaffold_card.mjs \
   --slug "karan-tanya-wedding" \
   --theme "royal-wedding" \
   --layout "hybrid" \
-  --silhouette "arch" \
+  --silhouette "rect" \
   --depth "gold-foil" \
   --anchor "back-edge" \
   --target "./target_card.png" \
+  --mind "./targets.mind" \
+  --audio "./shehnai.mp3" \
   --cards "./card1.png,./card2.png,./card3.png" \
   --deploy
 
