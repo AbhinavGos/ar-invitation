@@ -48,11 +48,11 @@
     display: none;
   }
 
-  /* Direct Tap-To-Start Overlay (No heavy landing page - 1 tap grants camera & audio) */
+  /* Direct Tap-To-Start Overlay (1 tap grants camera & audio) */
   #start-prompt {
     position: fixed; inset: 0; z-index: 35;
     display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(circle at 50% 50%, rgba(10, 15, 24, 0.75), rgba(5, 8, 14, 0.95));
+    background: radial-gradient(circle at 50% 50%, rgba(10, 15, 24, 0.78), rgba(5, 8, 14, 0.96));
     backdrop-filter: blur(8px);
     cursor: pointer; text-align: center; padding: 24px;
     transition: opacity 0.3s ease, visibility 0.3s;
@@ -60,17 +60,17 @@
 
   .start-card {
     max-width: 320px; width: 100%;
-    background: rgba(18, 25, 38, 0.9);
+    background: rgba(18, 25, 38, 0.92);
     border: 1.5px solid rgba(244, 192, 104, 0.5);
     border-radius: 28px; padding: 32px 24px;
-    box-shadow: 0 16px 45px rgba(0,0,0,0.8), 0 0 30px var(--gold-glow);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.85), 0 0 30px var(--gold-glow);
     display: flex; flex-direction: column; align-items: center;
     animation: gentlePulse 2.4s infinite ease-in-out;
   }
 
   @keyframes gentlePulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 16px 45px rgba(0,0,0,0.8), 0 0 25px var(--gold-glow); }
-    50% { transform: scale(1.02); box-shadow: 0 20px 55px rgba(0,0,0,0.9), 0 0 35px var(--gold-glow); }
+    0%, 100% { transform: scale(1); box-shadow: 0 16px 45px rgba(0,0,0,0.85), 0 0 25px var(--gold-glow); }
+    50% { transform: scale(1.02); box-shadow: 0 20px 55px rgba(0,0,0,0.95), 0 0 35px var(--gold-glow); }
   }
 
   .camera-icon-circle {
@@ -126,7 +126,7 @@
 
   .scanner-box {
     width: min(72vw, 290px);
-    height: calc(min(72vw, 290px) * (1920 / 1080)); /* Exactly 9:16 portrait matching target */
+    height: calc(min(72vw, 290px) * (1920 / 1080)); /* Exactly 9:16 portrait */
     border: 2px dashed rgba(244, 192, 104, 0.7);
     border-radius: 20px;
     position: relative;
@@ -134,7 +134,6 @@
     animation: pulseBorder 2.4s infinite ease-in-out;
   }
 
-  /* Ornate Corner Accents on Viewfinder */
   .scanner-box::before, .scanner-box::after {
     content: ""; position: absolute; width: 22px; height: 22px;
     border-color: #ffd782; border-style: solid; pointer-events: none;
@@ -224,11 +223,11 @@
   }
 
   .status-caption-bar {
-    background: rgba(18, 25, 38, 0.92);
-    border: 1px solid rgba(244, 192, 104, 0.4);
+    background: rgba(18, 25, 38, 0.94);
+    border: 1px solid rgba(244, 192, 104, 0.45);
     border-radius: 16px; padding: 8px 16px;
-    max-width: 360px; width: 100%; text-align: center;
-    backdrop-filter: blur(10px);
+    max-width: 380px; width: 100%; text-align: center;
+    backdrop-filter: blur(12px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.7);
   }
   .caption-title {
@@ -241,12 +240,13 @@
 
   .controls-row {
     display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+    max-width: 420px;
   }
 
   .control-chip {
     background: rgba(244, 192, 104, 0.12);
     border: 1px solid rgba(244, 192, 104, 0.35);
-    border-radius: 999px; padding: 7px 14px;
+    border-radius: 999px; padding: 7px 13px;
     font-size: 11px; font-weight: 700; color: #fce0a2;
     cursor: pointer; backdrop-filter: blur(8px);
     transition: background 0.2s, color 0.2s, transform 0.15s;
@@ -258,7 +258,7 @@
     box-shadow: 0 2px 12px rgba(244, 192, 104, 0.4);
   }
 
-  /* Target Card Modal (Allows viewing target on another screen or printing) */
+  /* Target Card Modal (For testing on second screen or laptop) */
   #target-modal {
     position: fixed; inset: 0; z-index: 40;
     background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(14px);
@@ -309,7 +309,7 @@
 <!-- MindAR Fullscreen Viewport -->
 <div id="ar-container"></div>
 
-<!-- Direct Tap to Start Scanner Overlay (Immediate frictionless launch) -->
+<!-- Direct Tap to Start Scanner Overlay -->
 <div id="start-prompt">
   <div class="start-card">
     <div class="camera-icon-circle">📷</div>
@@ -354,10 +354,18 @@
       <div class="caption-text" id="captionText">Audio &amp; video will play when card is in view</div>
     </div>
 
-    <!-- Quick Controls: Display Mode & Replay -->
+    <!-- Quick Controls: Angle and Scale -->
     <div class="controls-row">
-      <button class="control-chip active" id="modeLivingBtn">📄 Living Paper (Flush)</button>
-      <button class="control-chip" id="modePopoutBtn">✨ 3D Elevated Pop-Out</button>
+      <button class="control-chip active" id="angleAutoBtn" title="Faces camera directly at any viewing angle">👁️ Face Camera</button>
+      <button class="control-chip" id="angleEaselBtn" title="60° luxury pop-up easel for desks &amp; tablets">📐 60° Pop-Up</button>
+      <button class="control-chip" id="angleStandBtn" title="90° upright vertical stand">🧍 Upright</button>
+      <button class="control-chip" id="angleFlushBtn" title="Lying flat flush with card">📄 Flat on Card</button>
+    </div>
+
+    <div class="controls-row">
+      <button class="control-chip" id="zoom1Btn">1.0x</button>
+      <button class="control-chip active" id="zoom125Btn">1.25x Zoom</button>
+      <button class="control-chip" id="zoom15Btn">1.5x Hero</button>
       <button class="control-chip" id="replayBtn">🔄 Replay</button>
     </div>
   </div>
@@ -404,8 +412,14 @@ const targetModal = document.getElementById('target-modal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const exitBtn = document.getElementById('exitBtn');
 
-const modeLivingBtn = document.getElementById('modeLivingBtn');
-const modePopoutBtn = document.getElementById('modePopoutBtn');
+const angleAutoBtn = document.getElementById('angleAutoBtn');
+const angleEaselBtn = document.getElementById('angleEaselBtn');
+const angleStandBtn = document.getElementById('angleStandBtn');
+const angleFlushBtn = document.getElementById('angleFlushBtn');
+
+const zoom1Btn = document.getElementById('zoom1Btn');
+const zoom125Btn = document.getElementById('zoom125Btn');
+const zoom15Btn = document.getElementById('zoom15Btn');
 const replayBtn = document.getElementById('replayBtn');
 
 const video = document.getElementById('arVideo');
@@ -415,18 +429,25 @@ const errorMessage = document.getElementById('errorMessage');
 // State
 let mindarThree = null;
 let anchor = null;
-let cardGroup = null;
+let cardPivotGroup = null; // Hinged/pivoted at bottom edge
 let videoMesh = null;
 let shadowMesh = null;
+let standPedestal = null;
 let edgeBevel = null;
 let petalsGroup = null;
 
 let isTargetFound = false;
-let isElevatedPopout = false; // Default: living paper flush with card
+let currentAngleMode = 'auto'; // 'auto' | 'easel' | 'stand' | 'flush'
+let currentZoomScale = 1.25;
 
 // 9:16 Portrait Target & Video Aspect Ratio
 const CARD_WIDTH = 1.0;
 const CARD_HEIGHT = 1.0 * (1920 / 1080); // 1.7778
+const HALF_HEIGHT = CARD_HEIGHT / 2;     // 0.8889
+
+// Reusable math objects for camera-facing orientation
+const parentQuat = new THREE.Quaternion();
+const targetLocalQuat = new THREE.Quaternion();
 
 // ── Soft Contact Shadow ──────────────────────────────────────────────────────
 function createContactShadowTexture() {
@@ -434,21 +455,21 @@ function createContactShadowTexture() {
   canvas.width = 256; canvas.height = 256;
   const ctx = canvas.getContext('2d');
   const gradient = ctx.createRadialGradient(128, 128, 20, 128, 128, 120);
-  gradient.addColorStop(0, 'rgba(0,0,0,0.65)');
-  gradient.addColorStop(0.5, 'rgba(0,0,0,0.25)');
+  gradient.addColorStop(0, 'rgba(0,0,0,0.70)');
+  gradient.addColorStop(0.4, 'rgba(0,0,0,0.30)');
   gradient.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 256, 256);
   return new THREE.CanvasTexture(canvas);
 }
 
-// ── Floating Floral Petals (Matching the video's aesthetic) ──────────────────
+// ── Floating Floral Petals (Matching video aesthetic) ────────────────────────
 function createPetals() {
   const group = new THREE.Group();
-  const count = 30;
-  const geo = new THREE.PlaneGeometry(0.035, 0.05);
+  const count = 28;
+  const geo = new THREE.PlaneGeometry(0.04, 0.055);
   const mat = new THREE.MeshBasicMaterial({
-    color: 0xffe2b8, // warm soft petal color
+    color: 0xffe2b8,
     side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.8
@@ -457,9 +478,9 @@ function createPetals() {
   for (let i = 0; i < count; i++) {
     const p = new THREE.Mesh(geo, mat.clone());
     p.position.set(
-      (Math.random() - 0.5) * 1.4,
+      (Math.random() - 0.5) * 1.5,
       (Math.random() - 0.5) * 2.2,
-      (Math.random() - 0.5) * 0.5 + 0.1
+      (Math.random() - 0.5) * 0.6 + 0.2
     );
     p.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
     p.userData = {
@@ -474,13 +495,13 @@ function createPetals() {
   return group;
 }
 
-// ── Start WebAR Pipeline Directly ────────────────────────────────────────────
+// ── Start WebAR Pipeline ─────────────────────────────────────────────────────
 async function startAR() {
   startPrompt.style.display = 'none';
   loadingView.style.display = 'flex';
   loadStatus.textContent = 'Starting Camera & Target Engine...';
 
-  // Silent audio priming to satisfy mobile browser autoplay policy
+  // Silent audio priming to satisfy mobile browser autoplay requirements
   try {
     video.muted = false;
     const p = video.play();
@@ -500,7 +521,6 @@ async function startAR() {
     } catch(e) {}
   }
 
-  // Ensure AR container is visible
   arContainer.style.display = 'block';
 
   try {
@@ -517,61 +537,80 @@ async function startAR() {
 
     const { renderer, scene, camera } = mindarThree;
 
-    // Soft Ambient Lighting
+    // Ambient Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
 
     // Anchor on Card Image Target (index 0)
     anchor = mindarThree.addAnchor(0);
 
-    // Card Transform Group
-    cardGroup = new THREE.Group();
-    anchor.group.add(cardGroup);
-
-    // ── 1. Contact Shadow for elevated mode ──
-    const shadowGeo = new THREE.PlaneGeometry(CARD_WIDTH * 1.15, CARD_HEIGHT * 1.1);
+    // ── 1. Contact Ground Shadow on Card Surface ──
+    const shadowGeo = new THREE.PlaneGeometry(CARD_WIDTH * 1.25, 0.4);
     const shadowMat = new THREE.MeshBasicMaterial({
       map: createContactShadowTexture(),
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.55,
       depthWrite: false
     });
     shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-    shadowMesh.position.set(0, 0, 0.005);
-    shadowMesh.visible = false; // hidden in flush mode
+    // Positioned along the bottom hinge line on the card surface
+    shadowMesh.position.set(0, -HALF_HEIGHT, 0.003);
     anchor.group.add(shadowMesh);
 
-    // ── 2. Golden Edge Border (Simulates luxurious thick cardstock) ──
-    const borderGeo = new THREE.BoxGeometry(CARD_WIDTH + 0.015, CARD_HEIGHT + 0.015, 0.012);
-    const borderMat = new THREE.MeshBasicMaterial({
-      color: 0xd4af37,
-      transparent: true,
-      opacity: 0.8
+    // ── 2. 3D Golden Pedestal Hinge Bar at Bottom Edge ──
+    const standGeo = new THREE.BoxGeometry(CARD_WIDTH + 0.04, 0.024, 0.02);
+    const standMat = new THREE.MeshBasicMaterial({
+      color: 0xd4af37
     });
-    edgeBevel = new THREE.Mesh(borderGeo, borderMat);
-    edgeBevel.position.set(0, 0, 0.004);
-    cardGroup.add(edgeBevel);
+    standPedestal = new THREE.Mesh(standGeo, standMat);
+    standPedestal.position.set(0, -HALF_HEIGHT, 0.01);
+    anchor.group.add(standPedestal);
 
-    // ── 3. High-Definition Video Texture & Plane ──
+    // ── 3. Pivot Transform Group (Hinged at Bottom Edge: y = -HALF_HEIGHT) ──
+    cardPivotGroup = new THREE.Group();
+    cardPivotGroup.position.set(0, -HALF_HEIGHT, 0.012);
+    anchor.group.add(cardPivotGroup);
+
+    // ── 4. High-Definition Video Texture & Material (NO Z-FIGHTING) ──
     const videoTexture = new THREE.VideoTexture(video);
     videoTexture.colorSpace = THREE.SRGBColorSpace;
     videoTexture.minFilter = THREE.LinearFilter;
     videoTexture.magFilter = THREE.LinearFilter;
+    videoTexture.generateMipmaps = false;
 
+    // Shift geometry so (0,0) is at the bottom hinge
     const videoGeo = new THREE.PlaneGeometry(CARD_WIDTH, CARD_HEIGHT);
+    videoGeo.translate(0, HALF_HEIGHT, 0); // Bottom is at (0, 0, 0) of cardPivotGroup
+
     const videoMat = new THREE.MeshBasicMaterial({
       map: videoTexture,
       side: THREE.DoubleSide
     });
     videoMesh = new THREE.Mesh(videoGeo, videoMat);
-    videoMesh.position.set(0, 0, 0.01);
-    cardGroup.add(videoMesh);
+    videoMesh.position.set(0, 0, 0.002); // Clean positive offset, NO coplanar box
+    cardPivotGroup.add(videoMesh);
 
-    // ── 4. Atmospheric Petal Particles ──
+    // ── 5. Recessed Golden Backing Card (Strictly behind at z = -0.004) ──
+    // Zero z-fighting because its front face is at -0.001, safely behind videoMesh (+0.002)
+    const backGeo = new THREE.PlaneGeometry(CARD_WIDTH + 0.02, CARD_HEIGHT + 0.02);
+    backGeo.translate(0, HALF_HEIGHT, 0);
+    const backMat = new THREE.MeshBasicMaterial({
+      color: 0xc89b38,
+      side: THREE.DoubleSide
+    });
+    const backMesh = new THREE.Mesh(backGeo, backMat);
+    backMesh.position.set(0, 0, -0.004);
+    cardPivotGroup.add(backMesh);
+
+    // ── 6. Atmospheric Floating Petals ──
     petalsGroup = createPetals();
     anchor.group.add(petalsGroup);
 
-    // ── 5. Target Found & Lost Callbacks (Strict Audio Sync) ─────────────────
+    // Apply initial angle and scale
+    applyAngleMode(currentAngleMode);
+    applyZoomScale(currentZoomScale);
+
+    // ── 7. Target Found & Lost Callbacks (Strict Audio Sync) ─────────────────
     anchor.onTargetFound = () => {
       isTargetFound = true;
       scannerOverlay.style.display = 'none';
@@ -580,7 +619,7 @@ async function startAR() {
       captionTitle.textContent = '✨ Invitation Active';
       captionText.textContent = 'Playing animated video & soundtrack';
 
-      // STRICT AUDIO FIX: Only play when target is actually scanned!
+      // STRICT AUDIO: Only play when target is actually scanned!
       if (video.paused) {
         video.play().catch(e => console.warn('Play error on target found:', e));
       }
@@ -599,7 +638,7 @@ async function startAR() {
       captionTitle.textContent = '🔍 Point at Card';
       captionText.textContent = 'Audio paused until card is scanned';
 
-      // STRICT AUDIO FIX: Immediately pause when card leaves camera
+      // STRICT AUDIO: Instantly pause when card leaves camera
       video.pause();
       playBtn.textContent = '▶️';
     };
@@ -613,7 +652,16 @@ async function startAR() {
 
     // ── Render & Animation Loop ──────────────────────────────────────────────
     renderer.setAnimationLoop(() => {
-      // Animate floating petals when card is detected
+      // 1. Dynamic Auto Camera-Facing Billboard
+      if (currentAngleMode === 'auto' && isTargetFound && cardPivotGroup && anchor.group) {
+        anchor.group.getWorldQuaternion(parentQuat);
+        targetLocalQuat.copy(parentQuat).invert();
+        
+        // Smoothly orient to face viewer directly without jitter
+        cardPivotGroup.quaternion.slerp(targetLocalQuat, 0.16);
+      }
+
+      // 2. Animate floating petals when card is detected
       if (petalsGroup && isTargetFound) {
         petalsGroup.children.forEach(p => {
           p.position.y -= p.userData.speedY;
@@ -622,18 +670,11 @@ async function startAR() {
           p.rotation.y += p.userData.rotY;
           p.rotation.z += p.userData.rotZ;
 
-          // Recycle petals
-          if (p.position.y < -1.1) {
-            p.position.y = 1.1;
-            p.position.x = (Math.random() - 0.5) * 1.4;
+          if (p.position.y < -1.2) {
+            p.position.y = 1.2;
+            p.position.x = (Math.random() - 0.5) * 1.5;
           }
         });
-      }
-
-      // Smooth elevation transition
-      if (cardGroup) {
-        const targetZ = isElevatedPopout ? 0.12 : 0.005;
-        cardGroup.position.z += (targetZ - cardGroup.position.z) * 0.1;
       }
 
       renderer.render(scene, camera);
@@ -647,18 +688,52 @@ async function startAR() {
   }
 }
 
-// ── Display Mode Switcher ────────────────────────────────────────────────────
-function setDisplayMode(elevated) {
-  isElevatedPopout = elevated;
-  if (elevated) {
-    modePopoutBtn.classList.add('active');
-    modeLivingBtn.classList.remove('active');
+// ── Angle Mode Switcher ──────────────────────────────────────────────────────
+function applyAngleMode(mode) {
+  currentAngleMode = mode;
+  if (!cardPivotGroup) return;
+
+  [angleAutoBtn, angleEaselBtn, angleStandBtn, angleFlushBtn].forEach(b => b.classList.remove('active'));
+
+  if (mode === 'auto') {
+    angleAutoBtn.classList.add('active');
     if (shadowMesh) shadowMesh.visible = true;
-  } else {
-    modeLivingBtn.classList.add('active');
-    modePopoutBtn.classList.remove('active');
+    if (standPedestal) standPedestal.visible = true;
+  } else if (mode === 'easel') {
+    // 60° tilt: Natural luxury photo frame / pop-up easel tilt for viewing on desks or tablets
+    cardPivotGroup.quaternion.identity();
+    cardPivotGroup.rotation.set(Math.PI / 3, 0, 0); // 60 degrees upright
+    angleEaselBtn.classList.add('active');
+    if (shadowMesh) shadowMesh.visible = true;
+    if (standPedestal) standPedestal.visible = true;
+  } else if (mode === 'stand') {
+    // 90° upright vertical stand
+    cardPivotGroup.quaternion.identity();
+    cardPivotGroup.rotation.set(Math.PI / 2, 0, 0); // 90 degrees
+    angleStandBtn.classList.add('active');
+    if (shadowMesh) shadowMesh.visible = true;
+    if (standPedestal) standPedestal.visible = true;
+  } else if (mode === 'flush') {
+    // 0° flush on card surface
+    cardPivotGroup.quaternion.identity();
+    cardPivotGroup.rotation.set(0, 0, 0);
+    angleFlushBtn.classList.add('active');
     if (shadowMesh) shadowMesh.visible = false;
+    if (standPedestal) standPedestal.visible = false;
   }
+}
+
+// ── Zoom Scale Switcher ──────────────────────────────────────────────────────
+function applyZoomScale(scale) {
+  currentZoomScale = scale;
+  if (!cardPivotGroup) return;
+
+  cardPivotGroup.scale.set(scale, scale, scale);
+
+  [zoom1Btn, zoom125Btn, zoom15Btn].forEach(b => b.classList.remove('active'));
+  if (scale <= 1.1) zoom1Btn.classList.add('active');
+  else if (scale <= 1.35) zoom125Btn.classList.add('active');
+  else zoom15Btn.classList.add('active');
 }
 
 // ── Event Handlers ───────────────────────────────────────────────────────────
@@ -693,8 +768,14 @@ replayBtn.addEventListener('click', () => {
   }
 });
 
-modeLivingBtn.addEventListener('click', () => setDisplayMode(false));
-modePopoutBtn.addEventListener('click', () => setDisplayMode(true));
+angleAutoBtn.addEventListener('click', () => applyAngleMode('auto'));
+angleEaselBtn.addEventListener('click', () => applyAngleMode('easel'));
+angleStandBtn.addEventListener('click', () => applyAngleMode('stand'));
+angleFlushBtn.addEventListener('click', () => applyAngleMode('flush'));
+
+zoom1Btn.addEventListener('click', () => applyZoomScale(1.0));
+zoom125Btn.addEventListener('click', () => applyZoomScale(1.25));
+zoom15Btn.addEventListener('click', () => applyZoomScale(1.5));
 
 exitBtn.addEventListener('click', () => {
   window.location.reload();
