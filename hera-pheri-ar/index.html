@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#111215">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -28,7 +29,7 @@
     --gold-glow: rgba(255, 190, 26, 0.45);
     --red: #e62129;
     --dark: #0d0f12;
-    --card-bg: rgba(18, 20, 26, 0.88);
+    --card-bg: rgba(18, 20, 26, 0.90);
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -44,7 +45,7 @@
     overflow: hidden; z-index: 0; display: none;
   }
 
-  /* Hidden native video element */
+  /* Native hidden video element */
   #arVideo {
     display: none;
   }
@@ -54,7 +55,7 @@
     position: fixed; inset: 0; z-index: 30;
     display: flex; align-items: center; justify-content: center;
     padding: 20px; text-align: center;
-    background: radial-gradient(circle at 50% 25%, rgba(255, 190, 26, 0.2), transparent 60%),
+    background: radial-gradient(circle at 50% 25%, rgba(255, 190, 26, 0.22), transparent 60%),
                 linear-gradient(175deg, #181b22, #0d0f12 70%);
     overflow-y: auto;
   }
@@ -203,8 +204,8 @@
     display: flex; justify-content: space-between; align-items: center;
   }
   .hud-badge {
-    background: rgba(18, 20, 26, 0.88);
-    border: 1px solid rgba(255, 190, 26, 0.4);
+    background: rgba(18, 20, 26, 0.92);
+    border: 1px solid rgba(255, 190, 26, 0.45);
     padding: 7px 14px; border-radius: 999px;
     font-size: 11px; font-weight: 700; color: #fff;
     backdrop-filter: blur(10px);
@@ -234,39 +235,50 @@
   .hud-bottom {
     position: absolute; bottom: env(safe-area-inset-bottom, 20px);
     left: 14px; right: 14px;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
     pointer-events: auto;
   }
 
   .dialogue-banner {
-    background: rgba(18, 20, 26, 0.92);
+    background: rgba(18, 20, 26, 0.94);
     border: 1px solid rgba(255, 190, 26, 0.45);
-    border-radius: 16px; padding: 10px 18px;
-    max-width: 380px; width: 100%; text-align: center;
+    border-radius: 16px; padding: 9px 16px;
+    max-width: 390px; width: 100%; text-align: center;
     backdrop-filter: blur(12px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.7);
   }
   .dialogue-title {
-    font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em;
+    font-size: 10px; font-weight: 800; letter-spacing: 0.14em;
     color: var(--gold); text-transform: uppercase; margin-bottom: 2px;
   }
   .dialogue-text {
-    font-size: 12.5px; font-weight: 600; color: #fff; line-height: 1.35;
+    font-size: 12px; font-weight: 600; color: #fff; line-height: 1.35;
   }
 
-  .quick-controls {
-    display: flex; gap: 8px;
+  /* Control bar groups */
+  .controls-row {
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+    max-width: 420px;
   }
+
+  .control-group-title {
+    font-size: 9.5px; font-weight: 800; color: #b5bfcf; text-transform: uppercase;
+    letter-spacing: 0.1em; width: 100%; text-align: center; margin-bottom: -2px;
+  }
+
   .control-chip {
-    background: rgba(255, 190, 26, 0.15);
-    border: 1px solid rgba(255, 190, 26, 0.4);
-    border-radius: 999px; padding: 8px 14px;
-    font-size: 11.5px; font-weight: 700; color: #ffd768;
+    background: rgba(255, 190, 26, 0.12);
+    border: 1px solid rgba(255, 190, 26, 0.35);
+    border-radius: 999px; padding: 7px 13px;
+    font-size: 11px; font-weight: 700; color: #ffd768;
     cursor: pointer; backdrop-filter: blur(8px);
-    transition: background 0.2s;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+    display: inline-flex; align-items: center; gap: 4px;
   }
+  .control-chip:active { transform: scale(0.95); }
   .control-chip.active {
     background: var(--gold); color: #12100a;
+    box-shadow: 0 2px 12px rgba(255, 190, 26, 0.4);
   }
 
   /* Target Card Modal (For testing on second screen or printing) */
@@ -313,7 +325,7 @@
 </head>
 <body>
 
-<!-- Hidden HTML5 Video with Full Audio -->
+<!-- Hidden HTML5 Video with Full Audio (Paused until target scanned) -->
 <video id="arVideo" src="./video.mp4" playsinline webkit-playsinline preload="auto" loop crossorigin="anonymous"></video>
 
 <!-- MindAR Fullscreen Viewport -->
@@ -373,12 +385,22 @@
 
   <div class="hud-bottom">
     <div class="dialogue-banner">
-      <div class="dialogue-title">⭐ Iconic Scene</div>
-      <div class="dialogue-text">"Yeh Raju ka style hai!" — Pop-Out Hologram Active</div>
+      <div class="dialogue-title" id="dialogueState">⭐ Target Detection</div>
+      <div class="dialogue-text" id="dialogueCaption">"Yeh Raju ka style hai!" — Audio starts on scan</div>
     </div>
-    <div class="quick-controls">
-      <button class="control-chip active" id="modeStandingBtn">🧍 3D Standing</button>
-      <button class="control-chip" id="modeFlatBtn">📄 Flush on Poster</button>
+
+    <!-- Quick Controls: Angle and Zoom -->
+    <div class="controls-row">
+      <button class="control-chip active" id="angleAutoBtn" title="Automatically faces camera directly">👁️ Face Camera</button>
+      <button class="control-chip" id="angleTiltBtn" title="Tilted at 50 degrees for desks/tablets">📐 Desk Tilt</button>
+      <button class="control-chip" id="angleStandBtn" title="Perpendicular 90 degree vertical">🧍 Upright</button>
+      <button class="control-chip" id="angleFlushBtn" title="Lying flush on the poster">📄 Flush</button>
+    </div>
+
+    <div class="controls-row">
+      <button class="control-chip" id="zoom1Btn">1.0x</button>
+      <button class="control-chip active" id="zoom14Btn">1.4x (Zoomed)</button>
+      <button class="control-chip" id="zoom18Btn">1.8x (Hero)</button>
       <button class="control-chip" id="replayBtn">🔄 Replay</button>
     </div>
   </div>
@@ -417,15 +439,25 @@ const arContainer = document.getElementById('ar-container');
 const hud = document.getElementById('hud');
 const hudDot = document.getElementById('hudDot');
 const hudStatusText = document.getElementById('hudStatusText');
+const dialogueState = document.getElementById('dialogueState');
+const dialogueCaption = document.getElementById('dialogueCaption');
 const audioBtn = document.getElementById('audioBtn');
 const playBtn = document.getElementById('playBtn');
 const posterModalBtn = document.getElementById('posterModalBtn');
 const exitBtn = document.getElementById('exitBtn');
 const targetModal = document.getElementById('target-modal');
 const closeModalBtn = document.getElementById('closeModalBtn');
-const modeStandingBtn = document.getElementById('modeStandingBtn');
-const modeFlatBtn = document.getElementById('modeFlatBtn');
+
+const angleAutoBtn = document.getElementById('angleAutoBtn');
+const angleTiltBtn = document.getElementById('angleTiltBtn');
+const angleStandBtn = document.getElementById('angleStandBtn');
+const angleFlushBtn = document.getElementById('angleFlushBtn');
+
+const zoom1Btn = document.getElementById('zoom1Btn');
+const zoom14Btn = document.getElementById('zoom14Btn');
+const zoom18Btn = document.getElementById('zoom18Btn');
 const replayBtn = document.getElementById('replayBtn');
+
 const video = document.getElementById('arVideo');
 const errorBox = document.getElementById('error-box');
 const errorMessage = document.getElementById('errorMessage');
@@ -433,29 +465,31 @@ const errorMessage = document.getElementById('errorMessage');
 // State
 let mindarThree = null;
 let anchor = null;
+let characterGroup = null;
 let videoMesh = null;
 let shadowMesh = null;
 let stageRing = null;
 let sparklesGroup = null;
-let isStandingMode = true;
+
 let isTargetFound = false;
+let currentAngleMode = 'auto'; // 'auto' | 'tilt' | 'stand' | 'flush'
+let currentZoomScale = 1.45;    // Default zoomed in: 1.45x
 
-// Poster aspect ratio: 1280 x 1920 -> 1.0 width, 1.5 height
-const POSTER_WIDTH = 1.0;
-const POSTER_HEIGHT = 1.5;
+// Base dimensions (increased base size so character is commanding)
+const BASE_VIDEO_HEIGHT = 1.45;
+const BASE_VIDEO_WIDTH = BASE_VIDEO_HEIGHT * (1080 / 1920); // ~0.815
 
-// Video aspect ratio: 1080 x 1920 -> 0.5625
-// Scaled so height is ~1.4 (stands comfortably within/slightly taller than poster)
-const VIDEO_HEIGHT = 1.35;
-const VIDEO_WIDTH = VIDEO_HEIGHT * (1080 / 1920); // ~0.76
+// Temporary math objects for camera-facing calculations
+const parentQuat = new THREE.Quaternion();
+const targetLocalQuat = new THREE.Quaternion();
 
 // ── Chroma-Key Real-Time Shader Material ─────────────────────────────────────
-// Calibrated precisely to the sampled green background: RGB(45, 192, 1)
+// Sampled exact green background: RGB(45, 192, 1)
 function createChromaMaterial(videoTexture) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTexture: { value: videoTexture },
-      uKeyColor: { value: new THREE.Color(45/255, 192/255, 1/255) }, // sampled exact green
+      uKeyColor: { value: new THREE.Color(45/255, 192/255, 1/255) },
       uSimilarity: { value: 0.40 }, // distance threshold
       uSmoothness: { value: 0.10 }, // edge softness
       uSpill: { value: 0.65 }       // green spill suppression factor
@@ -501,45 +535,43 @@ function createChromaMaterial(videoTexture) {
   });
 }
 
-// ── Soft Contact Shadow Texture Generator ────────────────────────────────────
+// ── Soft Radial Contact Shadow Texture ───────────────────────────────────────
 function createRadialShadowTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 256; canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  const gradient = ctx.createRadialGradient(128, 128, 10, 128, 128, 120);
-  gradient.addColorStop(0, 'rgba(0,0,0,0.75)');
-  gradient.addColorStop(0.5, 'rgba(0,0,0,0.35)');
+  const gradient = ctx.createRadialGradient(128, 128, 15, 128, 128, 120);
+  gradient.addColorStop(0, 'rgba(0,0,0,0.70)');
+  gradient.addColorStop(0.45, 'rgba(0,0,0,0.30)');
   gradient.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 256, 256);
-  const texture = new THREE.CanvasTexture(canvas);
-  return texture;
+  return new THREE.CanvasTexture(canvas);
 }
 
 // ── Cinematic Sparkle Particles ──────────────────────────────────────────────
 function createSparkles() {
   const group = new THREE.Group();
-  const particleCount = 28;
-  const geo = new THREE.PlaneGeometry(0.028, 0.028);
+  const particleCount = 24;
+  const geo = new THREE.PlaneGeometry(0.026, 0.026);
   const mat = new THREE.MeshBasicMaterial({
     color: 0xffe066,
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.75,
     side: THREE.DoubleSide
   });
 
   for (let i = 0; i < particleCount; i++) {
     const p = new THREE.Mesh(geo, mat.clone());
     p.position.set(
-      (Math.random() - 0.5) * 0.9,
-      (Math.random() - 0.5) * 1.2,
+      (Math.random() - 0.5) * 1.1,
+      (Math.random() - 0.5) * 1.3,
       (Math.random() - 0.5) * 0.4
     );
     p.userData = {
       speedY: 0.003 + Math.random() * 0.005,
       driftX: (Math.random() - 0.5) * 0.002,
-      rotSpeed: (Math.random() - 0.5) * 0.05,
-      baseOpacity: 0.4 + Math.random() * 0.5
+      rotSpeed: (Math.random() - 0.5) * 0.05
     };
     group.add(p);
   }
@@ -550,16 +582,27 @@ function createSparkles() {
 async function startAR() {
   landing.style.display = 'none';
   loadingView.style.display = 'flex';
-  loadStatus.textContent = 'Unlocking Video & Camera...';
+  loadStatus.textContent = 'Unlocking Camera & AR Engine...';
 
-  // Mobile audio unlock: play & un-mute video on user gesture
+  // CRITICAL FIX: Unlock browser audio permissions silently on user gesture
+  // DO NOT leave audio playing here! Pause immediately and wait for target scan!
   try {
     video.muted = false;
-    await video.play();
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      await playPromise;
+      video.pause();
+      video.currentTime = 0;
+    }
   } catch (audioErr) {
-    console.warn('Initial unmuted play blocked, falling back to muted play:', audioErr);
+    console.warn('Audio prime notification:', audioErr);
     video.muted = true;
-    try { await video.play(); } catch(e) {}
+    try {
+      await video.play();
+      video.pause();
+      video.currentTime = 0;
+      video.muted = false; // re-enable for scan
+    } catch(e) {}
   }
 
   // Ensure AR container is visible before MindAR starts
@@ -586,60 +629,75 @@ async function startAR() {
     // Anchor to Target Poster (index 0)
     anchor = mindarThree.addAnchor(0);
 
-    // ── 1. Ornate Golden Stage Ring resting flat on the poster ──
-    const ringGeo = new THREE.RingGeometry(0.36, 0.42, 48);
+    // ── 1. Ornate Stage Ring (Refined & subtle) ──
+    const ringGeo = new THREE.RingGeometry(0.38, 0.41, 64);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0xffbe1a,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.55
     });
     stageRing = new THREE.Mesh(ringGeo, ringMat);
-    stageRing.position.set(0, -0.45, 0.005);
+    stageRing.position.set(0, -0.35, 0.005);
     anchor.group.add(stageRing);
 
     // ── 2. Contact Ground Shadow beneath Raju's feet ──
-    const shadowGeo = new THREE.PlaneGeometry(0.7, 0.35);
+    const shadowGeo = new THREE.PlaneGeometry(0.85, 0.42);
     const shadowMat = new THREE.MeshBasicMaterial({
       map: createRadialShadowTexture(),
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.55,
       depthWrite: false
     });
     shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-    shadowMesh.position.set(0, -0.45, 0.008);
+    shadowMesh.position.set(0, -0.35, 0.008);
     anchor.group.add(shadowMesh);
 
-    // ── 3. Video Texture & Chroma Shader Mesh ──
+    // ── 3. Character Group (Dedicated transform node for orientation & zoom) ──
+    characterGroup = new THREE.Group();
+    characterGroup.position.set(0, -0.35, 0.01);
+    anchor.group.add(characterGroup);
+
+    // ── 4. Video Texture & Chroma Shader Mesh ──
     const videoTexture = new THREE.VideoTexture(video);
     videoTexture.colorSpace = THREE.SRGBColorSpace;
     videoTexture.minFilter = THREE.LinearFilter;
     videoTexture.magFilter = THREE.LinearFilter;
 
     const chromaMat = createChromaMaterial(videoTexture);
-    const videoGeo = new THREE.PlaneGeometry(VIDEO_WIDTH, VIDEO_HEIGHT);
+    
+    // Geometry with pivot at the base so scaling and rotation pivot naturally
+    const videoGeo = new THREE.PlaneGeometry(BASE_VIDEO_WIDTH, BASE_VIDEO_HEIGHT);
+    videoGeo.translate(0, BASE_VIDEO_HEIGHT / 2, 0); // Ground pivot at bottom edge
+
     videoMesh = new THREE.Mesh(videoGeo, chromaMat);
+    characterGroup.add(videoMesh);
 
-    // Apply initial standing mode:
-    // In standing mode: character stands upright on the poster plane (rotX = 90 deg)
-    applyOrientationMode(isStandingMode);
-    anchor.group.add(videoMesh);
+    // Apply initial scale & orientation
+    applyZoomScale(currentZoomScale);
+    applyAngleMode(currentAngleMode);
 
-    // ── 4. Cinematic Sparkles ──
+    // ── 5. Floating Cinematic Sparkles ──
     sparklesGroup = createSparkles();
     anchor.group.add(sparklesGroup);
 
-    // Target Found & Lost Callbacks
+    // ── 6. Target Found & Lost Callbacks (Strict Audio Sync) ─────────────────
     anchor.onTargetFound = () => {
       isTargetFound = true;
       scannerOverlay.style.display = 'none';
       hudDot.className = 'badge-dot';
       hudStatusText.textContent = 'Poster Locked • Raju Speaking';
+      dialogueState.textContent = '⭐ Scene Active';
+      dialogueCaption.textContent = 'Raju Hologram Anchored • Speaking Live';
+
+      // AUDIO FIX: ONLY play when target is actually scanned!
       if (video.paused) {
-        video.play().catch(e => console.warn(e));
+        video.play().catch(e => console.warn('Play error on target found:', e));
       }
+      playBtn.textContent = '⏸️';
+
       if (navigator.vibrate) {
-        try { navigator.vibrate(80); } catch(e) {}
+        try { navigator.vibrate(70); } catch(e) {}
       }
     };
 
@@ -648,29 +706,44 @@ async function startAR() {
       scannerOverlay.style.display = 'flex';
       hudDot.className = 'badge-dot lost';
       hudStatusText.textContent = 'Searching for Poster...';
+      dialogueState.textContent = '🔍 Point at Poster';
+      dialogueCaption.textContent = 'Audio paused until poster re-enters frame';
+
+      // AUDIO FIX: Instantly pause video & audio when poster leaves camera!
+      video.pause();
+      playBtn.textContent = '▶️';
     };
 
-    // Start MindAR
+    // Start MindAR Engine
     await mindarThree.start();
 
     loadingView.style.display = 'none';
     scannerOverlay.style.display = 'flex';
     hud.style.display = 'block';
 
-    // Animation Loop
+    // ── Animation Loop ───────────────────────────────────────────────────────
     renderer.setAnimationLoop(() => {
-      // Rotate stage ring
-      if (stageRing) stageRing.rotation.z += 0.008;
+      // 1. Auto Camera-Facing Billboard update
+      if (currentAngleMode === 'auto' && isTargetFound && characterGroup && anchor.group) {
+        anchor.group.getWorldQuaternion(parentQuat);
+        targetLocalQuat.copy(parentQuat).invert();
+        
+        // Smoothly orient to face viewer directly (smooth damping)
+        characterGroup.quaternion.slerp(targetLocalQuat, 0.18);
+      }
 
-      // Animate floating sparkles
+      // 2. Rotate stage ring subtly
+      if (stageRing) stageRing.rotation.z += 0.006;
+
+      // 3. Floating Sparkle Particles
       if (sparklesGroup && isTargetFound) {
         sparklesGroup.children.forEach(p => {
           p.position.y += p.userData.speedY;
           p.position.x += p.userData.driftX;
           p.rotation.z += p.userData.rotSpeed;
-          if (p.position.y > 0.8) {
-            p.position.y = -0.5;
-            p.position.x = (Math.random() - 0.5) * 0.9;
+          if (p.position.y > 0.9) {
+            p.position.y = -0.4;
+            p.position.x = (Math.random() - 0.5) * 1.1;
           }
         });
       }
@@ -687,29 +760,53 @@ async function startAR() {
   }
 }
 
-// ── Switch Between 3D Standing vs Flush Mode ─────────────────────────────────
-function applyOrientationMode(standing) {
-  isStandingMode = standing;
-  if (!videoMesh) return;
+// ── Angle Mode Switcher ──────────────────────────────────────────────────────
+function applyAngleMode(mode) {
+  currentAngleMode = mode;
+  if (!characterGroup) return;
 
-  if (isStandingMode) {
-    // Standing Upright: rotated 90 degrees on X so Raju stands perpendicular to card
-    // Lower edge grounded at y = -0.45
-    videoMesh.rotation.set(Math.PI / 2, 0, 0);
-    videoMesh.position.set(0, -0.45, VIDEO_HEIGHT / 2);
+  // Clear active styling
+  [angleAutoBtn, angleTiltBtn, angleStandBtn, angleFlushBtn].forEach(b => b.classList.remove('active'));
+
+  if (mode === 'auto') {
+    angleAutoBtn.classList.add('active');
     if (shadowMesh) shadowMesh.visible = true;
     if (stageRing) stageRing.visible = true;
-    modeStandingBtn.classList.add('active');
-    modeFlatBtn.classList.remove('active');
-  } else {
-    // Flush Poster Mode: floats directly in front of the poster along Z
-    videoMesh.rotation.set(0, 0, 0);
-    videoMesh.position.set(0, 0, 0.12);
+  } else if (mode === 'tilt') {
+    // 50° angle: perfect sweet-spot for phone viewing card flat on a desk or tablet
+    characterGroup.quaternion.identity();
+    characterGroup.rotation.set(Math.PI * 0.28, 0, 0); // ~50 degrees
+    angleTiltBtn.classList.add('active');
+    if (shadowMesh) shadowMesh.visible = true;
+    if (stageRing) stageRing.visible = true;
+  } else if (mode === 'stand') {
+    // 90° pure vertical perpendicular stand
+    characterGroup.quaternion.identity();
+    characterGroup.rotation.set(Math.PI / 2, 0, 0);
+    angleStandBtn.classList.add('active');
+    if (shadowMesh) shadowMesh.visible = true;
+    if (stageRing) stageRing.visible = true;
+  } else if (mode === 'flush') {
+    // 0° flush on poster plane
+    characterGroup.quaternion.identity();
+    characterGroup.rotation.set(0, 0, 0);
+    angleFlushBtn.classList.add('active');
     if (shadowMesh) shadowMesh.visible = false;
     if (stageRing) stageRing.visible = false;
-    modeFlatBtn.classList.add('active');
-    modeStandingBtn.classList.remove('active');
   }
+}
+
+// ── Zoom Scale Switcher ──────────────────────────────────────────────────────
+function applyZoomScale(scale) {
+  currentZoomScale = scale;
+  if (!characterGroup) return;
+
+  characterGroup.scale.set(scale, scale, scale);
+
+  [zoom1Btn, zoom14Btn, zoom18Btn].forEach(b => b.classList.remove('active'));
+  if (scale <= 1.1) zoom1Btn.classList.add('active');
+  else if (scale <= 1.55) zoom14Btn.classList.add('active');
+  else zoom18Btn.classList.add('active');
 }
 
 // ── Event Handlers ───────────────────────────────────────────────────────────
@@ -736,12 +833,20 @@ playBtn.addEventListener('click', () => {
 
 replayBtn.addEventListener('click', () => {
   video.currentTime = 0;
-  video.play();
-  playBtn.textContent = '⏸️';
+  if (isTargetFound) {
+    video.play();
+    playBtn.textContent = '⏸️';
+  }
 });
 
-modeStandingBtn.addEventListener('click', () => applyOrientationMode(true));
-modeFlatBtn.addEventListener('click', () => applyOrientationMode(false));
+angleAutoBtn.addEventListener('click', () => applyAngleMode('auto'));
+angleTiltBtn.addEventListener('click', () => applyAngleMode('tilt'));
+angleStandBtn.addEventListener('click', () => applyAngleMode('stand'));
+angleFlushBtn.addEventListener('click', () => applyAngleMode('flush'));
+
+zoom1Btn.addEventListener('click', () => applyZoomScale(1.0));
+zoom14Btn.addEventListener('click', () => applyZoomScale(1.45));
+zoom18Btn.addEventListener('click', () => applyZoomScale(1.85));
 
 exitBtn.addEventListener('click', () => {
   window.location.reload();
