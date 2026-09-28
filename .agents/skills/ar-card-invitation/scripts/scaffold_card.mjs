@@ -13,6 +13,10 @@ function parseArgs() {
     slug: '',
     target: '',
     cards: [],
+    cardTitles: [],
+    cardDates: [],
+    cardColors: [],
+    mind: '',
     theme: 'royal-wedding',      // royal-wedding | haldi-garden | cocktail-glam | corporate-summit | minimal-luxury
     layout: 'hybrid',            // carousel | triptych | diorama | popout | hybrid
     silhouette: 'arch',          // arch | scalloped | chamfer | deckled | portal | rect
@@ -27,7 +31,11 @@ function parseArgs() {
     if (arg === '--name' && args[i + 1]) params.name = args[++i];
     else if (arg === '--slug' && args[i + 1]) params.slug = args[++i];
     else if (arg === '--target' && args[i + 1]) params.target = args[++i];
+    else if (arg === '--mind' && args[i + 1]) params.mind = args[++i];
     else if (arg === '--cards' && args[i + 1]) params.cards = args[++i].split(',').map(s => s.trim());
+    else if ((arg === '--cardTitles' || arg === '--card-titles') && args[i + 1]) params.cardTitles = args[++i].split(',').map(s => s.trim());
+    else if ((arg === '--cardDates' || arg === '--card-dates') && args[i + 1]) params.cardDates = args[++i].split(',').map(s => s.trim());
+    else if ((arg === '--cardColors' || arg === '--card-colors') && args[i + 1]) params.cardColors = args[++i].split(',').map(s => s.trim());
     else if (arg === '--theme' && args[i + 1]) params.theme = args[++i];
     else if (arg === '--layout' && args[i + 1]) params.layout = args[++i];
     else if (arg === '--silhouette' && args[i + 1]) params.silhouette = args[++i];
@@ -107,16 +115,26 @@ async function main() {
     fs.copyFileSync(params.target, destTargetImg);
     console.log(`✅ Copied visual trigger card to: ${destTargetImg}`);
 
-    // Compile targets.mind using compile_target.mjs
-    const compilerScript = path.join(__dirname, 'compile_target.mjs');
-    const destMind = path.join(params.outDir, 'targets.mind');
-    console.log(`⏳ Compiling targets.mind using headless GPU compiler...`);
-    try {
-      execSync(`node "${compilerScript}" "${destTargetImg}" "${destMind}"`, { stdio: 'inherit' });
-      console.log(`✅ targets.mind successfully compiled!`);
-    } catch (compileErr) {
-      console.warn(`⚠️ Warning: targets.mind compilation failed or timed out. Please compile manually.`);
+    if (params.mind && fs.existsSync(params.mind)) {
+      const destMind = path.join(params.outDir, 'targets.mind');
+      fs.copyFileSync(params.mind, destMind);
+      console.log(`✅ Copied pre-compiled targets.mind to: ${destMind}`);
+    } else {
+      // Compile targets.mind using compile_target.mjs
+      const compilerScript = path.join(__dirname, 'compile_target.mjs');
+      const destMind = path.join(params.outDir, 'targets.mind');
+      console.log(`⏳ Compiling targets.mind using headless GPU compiler...`);
+      try {
+        execSync(`node "${compilerScript}" "${destTargetImg}" "${destMind}"`, { stdio: 'inherit' });
+        console.log(`✅ targets.mind successfully compiled!`);
+      } catch (compileErr) {
+        console.warn(`⚠️ Warning: targets.mind compilation failed or timed out. Please compile manually.`);
+      }
     }
+  } else if (params.mind && fs.existsSync(params.mind)) {
+    const destMind = path.join(params.outDir, 'targets.mind');
+    fs.copyFileSync(params.mind, destMind);
+    console.log(`✅ Copied pre-compiled targets.mind to: ${destMind}`);
   } else {
     console.log(`ℹ️ No target image supplied. Place your visual trigger as target_card.png and run compile_target.mjs.`);
   }
@@ -131,9 +149,9 @@ async function main() {
         fs.copyFileSync(cardPath, path.join(params.outDir, cardName));
         cardObjects.push({
           url: `./${cardName}`,
-          title: `Ceremony ${idx + 1}`,
-          date: `Event ${idx + 1}`,
-          color: (idx === 0) ? '#f59e0b' : (idx === 1) ? '#eab308' : '#dc2626'
+          title: params.cardTitles[idx] || `Ceremony ${idx + 1}`,
+          date: params.cardDates[idx] || `Event ${idx + 1}`,
+          color: params.cardColors[idx] || ((idx === 0) ? '#f59e0b' : (idx === 1) ? '#eab308' : '#dc2626')
         });
       }
     });
@@ -168,6 +186,7 @@ async function main() {
     console.log(`\n🚀 Initializing Git repository and deploying to GitHub Pages...`);
     try {
       execSync(`git init`, { cwd: params.outDir, stdio: 'inherit' });
+      try { execSync(`git branch -M master`, { cwd: params.outDir, stdio: 'inherit' }); } catch(bErr) {}
       execSync(`git add .`, { cwd: params.outDir, stdio: 'inherit' });
       execSync(`git commit -m "Initial WebAR Card: ${params.name}"`, { cwd: params.outDir, stdio: 'inherit' });
       

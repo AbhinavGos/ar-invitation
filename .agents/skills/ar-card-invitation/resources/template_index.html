@@ -668,7 +668,7 @@ async function startWebAR() {
 
     // ── 3. Build 3D Card Meshes (with Cardstock Depth & Bevels) ──
     const cardWidth = 0.74;
-    const cardHeight = 1.12;
+    const cardHeight = 1.146;
     const cardDepth = (CONFIG.depth === 'flat') ? 0.0001 : 0.008;
 
     const cardGeo = new THREE.BoxGeometry(cardWidth, cardHeight, cardDepth);
@@ -694,6 +694,25 @@ async function startWebAR() {
           transparent: true,
           opacity: 1.0
         });
+
+        // Apply die-cut silhouette mask if configured
+        if (CONFIG.silhouette && CONFIG.silhouette !== 'rect') {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const cvs = document.createElement('canvas');
+            cvs.width = img.naturalWidth || img.width;
+            cvs.height = img.naturalHeight || img.height;
+            const ctx = cvs.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const maskedCvs = applySilhouetteMask(cvs, CONFIG.silhouette);
+            const maskedTex = new THREE.CanvasTexture(maskedCvs);
+            maskedTex.colorSpace = THREE.SRGBColorSpace;
+            frontMat.map = maskedTex;
+            frontMat.needsUpdate = true;
+          };
+          img.src = c.url;
+        }
       } else {
         const cvs = createFallbackCardCanvas(c.type || 'wedding', c.title, c.date);
         const tex = new THREE.CanvasTexture(cvs);
@@ -706,7 +725,7 @@ async function startWebAR() {
         });
       }
 
-      const backMat = new THREE.MeshBasicMaterial({ color: 0x181216, side: THREE.BackSide });
+      const backMat = new THREE.MeshBasicMaterial({ color: 0x181216, side: THREE.BackSide, transparent: true, opacity: 0.9 });
       const materials = [edgeMat, edgeMat, edgeMat, edgeMat, frontMat, backMat];
 
       const mesh = new THREE.Mesh(cardGeo, materials);
@@ -715,6 +734,43 @@ async function startWebAR() {
       cardsGroup.add(mesh);
       cardMeshes.push(mesh);
     });
+
+    // In Diorama layout: add an architectural Jharokha Arch Portal in the foreground (z = 0.16)
+    if (CONFIG.layout === 'diorama') {
+      const archFrameGroup = new THREE.Group();
+      archFrameGroup.position.set(0, 0, 0.16);
+      
+      const pillarGeo = new THREE.CylinderGeometry(0.014, 0.018, cardHeight, 16);
+      pillarGeo.translate(0, cardHeight / 2, 0);
+      const pillarMat = new THREE.MeshStandardMaterial({
+        color: currentTheme.edgeColor,
+        metalness: 0.88,
+        roughness: 0.22
+      });
+      const leftPillar = new THREE.Mesh(pillarGeo, pillarMat);
+      leftPillar.position.set(-cardWidth / 2 - 0.02, 0, 0);
+      const rightPillar = new THREE.Mesh(pillarGeo, pillarMat);
+      rightPillar.position.set(cardWidth / 2 + 0.02, 0, 0);
+      archFrameGroup.add(leftPillar);
+      archFrameGroup.add(rightPillar);
+
+      // Arch Crown Torus at top
+      const archTopGeo = new THREE.TorusGeometry(cardWidth / 2 + 0.02, 0.014, 12, 32, Math.PI);
+      const archTopMesh = new THREE.Mesh(archTopGeo, pillarMat);
+      archTopMesh.position.set(0, cardHeight, 0);
+      archFrameGroup.add(archTopMesh);
+
+      // Hanging Golden Lanterns
+      const lanternGeo = new THREE.SphereGeometry(0.022, 16, 16);
+      const lanternMat = new THREE.MeshBasicMaterial({ color: 0xffe082 });
+      [-cardWidth / 2 + 0.06, cardWidth / 2 - 0.06].forEach(lx => {
+        const lantern = new THREE.Mesh(lanternGeo, lanternMat);
+        lantern.position.set(lx, cardHeight - 0.05, 0.01);
+        archFrameGroup.add(lantern);
+      });
+
+      cardsGroup.add(archFrameGroup);
+    }
 
     // ── 4. Thematic Particles ──
     particlesGroup = new THREE.Group();
@@ -821,12 +877,27 @@ function updateLayoutAnimation() {
       targetScale = (i === 1) ? 1.0 : 0.88;
       targetOpacity = 1.0;
     } else if (mode === 'diorama') {
-      // Multi-layer Z-depth tunnel
-      targetX = 0;
-      targetZ = 0.12 - (i * 0.12);
-      targetRotY = 0;
-      targetScale = 1.0 - (i * 0.06);
-      targetOpacity = 1.0;
+      // Multi-layer Z-depth optical corridor
+      const diff = i - activeIndex;
+      if (diff === 0) {
+        targetX = 0;
+        targetZ = 0.05;
+        targetRotY = 0;
+        targetScale = 1.0;
+        targetOpacity = 1.0;
+      } else if (diff > 0) {
+        targetX = diff * 0.07;
+        targetZ = 0.05 - (diff * 0.16);
+        targetRotY = -0.05 * Math.min(diff, 2);
+        targetScale = Math.max(0.68, 1.0 - diff * 0.08);
+        targetOpacity = Math.max(0.35, 1.0 - diff * 0.2);
+      } else {
+        targetX = -0.62 + diff * 0.12;
+        targetZ = 0.10 + Math.abs(diff) * 0.04;
+        targetRotY = 0.32;
+        targetScale = 0.82;
+        targetOpacity = 0.35;
+      }
     } else if (mode === 'popout') {
       // Frame-break anamorphic pop-out
       if (i === 0) {
@@ -839,12 +910,12 @@ function updateLayoutAnimation() {
     } else if (mode === 'hybrid') {
       // Grand Reveal for first 3.2s, then smooth glide to focused carousel
       if (timeSinceFound < 3.2) {
-        // Triptych fan-out reveal
-        const diff = i - 1;
-        targetX = diff * 0.85;
+        const mid = (cardMeshes.length - 1) / 2;
+        const diff = i - mid;
+        targetX = diff * 0.72;
         targetZ = -Math.abs(diff) * 0.12;
-        targetRotY = -diff * 0.32;
-        targetScale = 0.92;
+        targetRotY = -diff * 0.26;
+        targetScale = 0.88;
         targetOpacity = 1.0;
       } else {
         // Glide into active carousel
