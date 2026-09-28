@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0f18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>AR Video Invitation · Live Camera Scanner</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+  }
+}
+</script>
+
+<style>
+  :root {
+    --gold: #f4c068;
+    --gold-glow: rgba(244, 192, 104, 0.4);
+    --dark: #0a0f18;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; background: var(--dark); color: #fff;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  /* MindAR Camera Fullscreen Viewport */
+  #ar-container {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    overflow: hidden; z-index: 0; display: block;
+  }
+
+  /* Hidden native video element */
+  #arVideo {
+    display: none;
+  }
+
+  /* Direct Tap-To-Start Overlay (No heavy landing page - 1 tap grants camera & audio) */
+  #start-prompt {
+    position: fixed; inset: 0; z-index: 35;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 50%, rgba(10, 15, 24, 0.75), rgba(5, 8, 14, 0.95));
+    backdrop-filter: blur(8px);
+    cursor: pointer; text-align: center; padding: 24px;
+    transition: opacity 0.3s ease, visibility 0.3s;
+  }
+
+  .start-card {
+    max-width: 320px; width: 100%;
+    background: rgba(18, 25, 38, 0.9);
+    border: 1.5px solid rgba(244, 192, 104, 0.5);
+    border-radius: 28px; padding: 32px 24px;
+    box-shadow: 0 16px 45px rgba(0,0,0,0.8), 0 0 30px var(--gold-glow);
+    display: flex; flex-direction: column; align-items: center;
+    animation: gentlePulse 2.4s infinite ease-in-out;
+  }
+
+  @keyframes gentlePulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 16px 45px rgba(0,0,0,0.8), 0 0 25px var(--gold-glow); }
+    50% { transform: scale(1.02); box-shadow: 0 20px 55px rgba(0,0,0,0.9), 0 0 35px var(--gold-glow); }
+  }
+
+  .camera-icon-circle {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, #fce0a2, #dfa248);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; margin-bottom: 18px;
+    box-shadow: 0 8px 24px rgba(223, 162, 72, 0.45);
+  }
+
+  .start-card h2 {
+    font-family: 'Cinzel', serif; font-size: 20px;
+    letter-spacing: 0.08em; margin: 0 0 8px; color: #fff;
+  }
+
+  .start-card p {
+    font-size: 13px; color: #cbd5e1; line-height: 1.5; margin: 0 0 22px;
+  }
+
+  .btn-tap-start {
+    background: linear-gradient(135deg, #fce0a2, #dfa248);
+    color: #111; font-weight: 700; font-size: 14px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 13px 28px; border-radius: 999px;
+    border: none; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(223, 162, 72, 0.4);
+  }
+
+  /* Loading State */
+  #loading-view {
+    position: fixed; inset: 0; z-index: 25;
+    background: rgba(10, 15, 24, 0.95);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; padding: 20px;
+  }
+  .spinner {
+    width: 52px; height: 52px;
+    border: 3.5px solid rgba(244, 192, 104, 0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .load-text { font-size: 13.5px; font-weight: 600; color: #fce0a2; letter-spacing: 0.04em; }
+
+  /* Portrait Scanning Viewfinder (Matches 1080x1920 = 9:16 Portrait Target Image) */
+  #scanner-overlay {
+    position: fixed; inset: 0; z-index: 10; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+
+  .scanner-box {
+    width: min(72vw, 290px);
+    height: calc(min(72vw, 290px) * (1920 / 1080)); /* Exactly 9:16 portrait matching target */
+    border: 2px dashed rgba(244, 192, 104, 0.7);
+    border-radius: 20px;
+    position: relative;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.52);
+    animation: pulseBorder 2.4s infinite ease-in-out;
+  }
+
+  /* Ornate Corner Accents on Viewfinder */
+  .scanner-box::before, .scanner-box::after {
+    content: ""; position: absolute; width: 22px; height: 22px;
+    border-color: #ffd782; border-style: solid; pointer-events: none;
+  }
+  .scanner-box::before {
+    top: -2px; left: -2px; border-width: 3.5px 0 0 3.5px; border-top-left-radius: 20px;
+  }
+  .scanner-box::after {
+    bottom: -2px; right: -2px; border-width: 0 3.5px 3.5px 0; border-bottom-right-radius: 20px;
+  }
+
+  .scanner-line {
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, #ffe29e, #dfa248, transparent);
+    box-shadow: 0 0 16px #f4c068;
+    animation: scanSweep 2.4s infinite ease-in-out;
+  }
+
+  @keyframes scanSweep {
+    0% { top: 2%; opacity: 0.3; }
+    50% { top: 96%; opacity: 1; }
+    100% { top: 2%; opacity: 0.3; }
+  }
+  @keyframes pulseBorder {
+    0%, 100% { border-color: rgba(244, 192, 104, 0.45); }
+    50% { border-color: rgba(255, 230, 160, 0.95); }
+  }
+
+  .scanner-hint {
+    margin-top: 18px;
+    background: rgba(18, 25, 38, 0.92);
+    border: 1px solid rgba(244, 192, 104, 0.5);
+    padding: 9px 20px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; color: var(--gold);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+  }
+
+  /* HUD Active AR Overlay */
+  #hud {
+    position: fixed; inset: 0; z-index: 15;
+    display: none; pointer-events: none;
+  }
+
+  .hud-topbar {
+    position: absolute; top: env(safe-area-inset-top, 16px);
+    left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .hud-badge {
+    background: rgba(18, 25, 38, 0.9);
+    border: 1px solid rgba(244, 192, 104, 0.45);
+    padding: 7px 14px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; color: #fff;
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; gap: 7px;
+  }
+
+  .badge-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #00ff88; box-shadow: 0 0 10px #00ff88;
+  }
+  .badge-dot.lost {
+    background: #ffb700; box-shadow: 0 0 10px #ffb700;
+  }
+
+  .hud-actions { display: flex; gap: 8px; pointer-events: auto; }
+  .icon-btn {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid rgba(244, 192, 104, 0.4);
+    background: rgba(18, 25, 38, 0.88); color: var(--gold);
+    font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(10px); box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    transition: transform 0.15s, background 0.2s;
+  }
+  .icon-btn:active { transform: scale(0.92); }
+
+  /* Bottom Controls Dock */
+  .hud-bottom {
+    position: absolute; bottom: env(safe-area-inset-bottom, 20px);
+    left: 14px; right: 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    pointer-events: auto;
+  }
+
+  .status-caption-bar {
+    background: rgba(18, 25, 38, 0.92);
+    border: 1px solid rgba(244, 192, 104, 0.4);
+    border-radius: 16px; padding: 8px 16px;
+    max-width: 360px; width: 100%; text-align: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+  }
+  .caption-title {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.14em;
+    color: var(--gold); text-transform: uppercase; margin-bottom: 2px;
+  }
+  .caption-text {
+    font-size: 12px; font-weight: 600; color: #fff; line-height: 1.35;
+  }
+
+  .controls-row {
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  }
+
+  .control-chip {
+    background: rgba(244, 192, 104, 0.12);
+    border: 1px solid rgba(244, 192, 104, 0.35);
+    border-radius: 999px; padding: 7px 14px;
+    font-size: 11px; font-weight: 700; color: #fce0a2;
+    cursor: pointer; backdrop-filter: blur(8px);
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .control-chip:active { transform: scale(0.95); }
+  .control-chip.active {
+    background: var(--gold); color: #111;
+    box-shadow: 0 2px 12px rgba(244, 192, 104, 0.4);
+  }
+
+  /* Target Card Modal (Allows viewing target on another screen or printing) */
+  #target-modal {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(14px);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-box {
+    max-width: 380px; width: 100%; background: #131a26;
+    border: 1.5px solid rgba(244, 192, 104, 0.5); border-radius: 24px;
+    padding: 22px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+  }
+  .modal-box h3 {
+    margin: 0 0 8px; font-family: 'Cinzel', serif;
+    font-size: 18px; color: var(--gold);
+  }
+  .modal-box p {
+    font-size: 12px; color: #cbd5e1; line-height: 1.45; margin-bottom: 14px;
+  }
+  .modal-img-wrap {
+    background: #000; padding: 6px; border-radius: 14px;
+    border: 1px solid rgba(244, 192, 104, 0.3); display: inline-block;
+    margin-bottom: 14px;
+  }
+  .modal-img {
+    display: block; width: 100%; max-width: 220px; border-radius: 10px;
+  }
+  .btn-modal-close {
+    width: 100%; padding: 12px; border: none; border-radius: 999px;
+    background: linear-gradient(135deg, #fce0a2, #dfa248);
+    color: #111; font-size: 13px; font-weight: 800;
+    cursor: pointer; text-transform: uppercase;
+  }
+
+  /* Error Box */
+  #error-box {
+    position: fixed; bottom: 30px; left: 20px; right: 20px; z-index: 50;
+    background: #2a1012; border: 1px solid #ff4545; border-radius: 16px;
+    padding: 16px 20px; color: #ffb4b4; display: none; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- Hidden HTML5 Video with Full Audio (Strictly starts on scan) -->
+<video id="arVideo" src="./video.mp4" playsinline webkit-playsinline preload="auto" loop crossorigin="anonymous"></video>
+
+<!-- MindAR Fullscreen Viewport -->
+<div id="ar-container"></div>
+
+<!-- Direct Tap to Start Scanner Overlay (Immediate frictionless launch) -->
+<div id="start-prompt">
+  <div class="start-card">
+    <div class="camera-icon-circle">📷</div>
+    <h2>Invitation AR Scanner</h2>
+    <p>Point camera at the invitation card to bring the animated story to life with music.</p>
+    <button class="btn-tap-start" id="startBtn">Start Scanner</button>
+  </div>
+</div>
+
+<!-- Loading View -->
+<div id="loading-view">
+  <div class="spinner"></div>
+  <div class="load-text" id="loadStatus">Initializing Camera &amp; AI Tracker...</div>
+</div>
+
+<!-- Portrait Scanning Viewfinder (Matches 9:16 Portrait Target Image) -->
+<div id="scanner-overlay">
+  <div class="scanner-box">
+    <div class="scanner-line"></div>
+  </div>
+  <div class="scanner-hint">✨ Aim camera at the Invitation Card</div>
+</div>
+
+<!-- Active AR HUD -->
+<div id="hud">
+  <div class="hud-topbar">
+    <div class="hud-badge" id="hudStatus">
+      <div class="badge-dot lost" id="hudDot"></div>
+      <span id="hudStatusText">Searching for Card...</span>
+    </div>
+    <div class="hud-actions">
+      <button class="icon-btn" id="audioBtn" title="Toggle Audio">🔊</button>
+      <button class="icon-btn" id="playBtn" title="Play/Pause Video">⏸️</button>
+      <button class="icon-btn" id="viewCardBtn" title="View Target Image">🖼️</button>
+      <button class="icon-btn" id="exitBtn" title="Restart">✕</button>
+    </div>
+  </div>
+
+  <div class="hud-bottom">
+    <div class="status-caption-bar">
+      <div class="caption-title" id="captionTitle">✨ Card Recognition</div>
+      <div class="caption-text" id="captionText">Audio &amp; video will play when card is in view</div>
+    </div>
+
+    <!-- Quick Controls: Display Mode & Replay -->
+    <div class="controls-row">
+      <button class="control-chip active" id="modeLivingBtn">📄 Living Paper (Flush)</button>
+      <button class="control-chip" id="modePopoutBtn">✨ 3D Elevated Pop-Out</button>
+      <button class="control-chip" id="replayBtn">🔄 Replay</button>
+    </div>
+  </div>
+</div>
+
+<!-- Target Card Modal (For testing on second screen or laptop) -->
+<div id="target-modal">
+  <div class="modal-box">
+    <h3>Target Card</h3>
+    <p>Aim your camera at this vertical card artwork to trigger the AR experience:</p>
+    <div class="modal-img-wrap">
+      <img src="./target_card.jpg" class="modal-img" alt="Target Card Artwork">
+    </div>
+    <button class="btn-modal-close" id="closeModalBtn">Close / Return to Camera</button>
+  </div>
+</div>
+
+<!-- Error Box -->
+<div id="error-box">
+  <div id="errorMessage">Camera access required to view AR.</div>
+</div>
+
+<!-- WebAR Engine Script -->
+<script type="module">
+import * as THREE from 'three';
+import { MindARThree } from 'mindar-image-three';
+
+// DOM References
+const startPrompt = document.getElementById('start-prompt');
+const startBtn = document.getElementById('startBtn');
+const loadingView = document.getElementById('loading-view');
+const loadStatus = document.getElementById('loadStatus');
+const scannerOverlay = document.getElementById('scanner-overlay');
+const arContainer = document.getElementById('ar-container');
+const hud = document.getElementById('hud');
+const hudDot = document.getElementById('hudDot');
+const hudStatusText = document.getElementById('hudStatusText');
+const captionTitle = document.getElementById('captionTitle');
+const captionText = document.getElementById('captionText');
+const audioBtn = document.getElementById('audioBtn');
+const playBtn = document.getElementById('playBtn');
+const viewCardBtn = document.getElementById('viewCardBtn');
+const targetModal = document.getElementById('target-modal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const exitBtn = document.getElementById('exitBtn');
+
+const modeLivingBtn = document.getElementById('modeLivingBtn');
+const modePopoutBtn = document.getElementById('modePopoutBtn');
+const replayBtn = document.getElementById('replayBtn');
+
+const video = document.getElementById('arVideo');
+const errorBox = document.getElementById('error-box');
+const errorMessage = document.getElementById('errorMessage');
+
+// State
+let mindarThree = null;
+let anchor = null;
+let cardGroup = null;
+let videoMesh = null;
+let shadowMesh = null;
+let edgeBevel = null;
+let petalsGroup = null;
+
+let isTargetFound = false;
+let isElevatedPopout = false; // Default: living paper flush with card
+
+// 9:16 Portrait Target & Video Aspect Ratio
+const CARD_WIDTH = 1.0;
+const CARD_HEIGHT = 1.0 * (1920 / 1080); // 1.7778
+
+// ── Soft Contact Shadow ──────────────────────────────────────────────────────
+function createContactShadowTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createRadialGradient(128, 128, 20, 128, 128, 120);
+  gradient.addColorStop(0, 'rgba(0,0,0,0.65)');
+  gradient.addColorStop(0.5, 'rgba(0,0,0,0.25)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(canvas);
+}
+
+// ── Floating Floral Petals (Matching the video's aesthetic) ──────────────────
+function createPetals() {
+  const group = new THREE.Group();
+  const count = 30;
+  const geo = new THREE.PlaneGeometry(0.035, 0.05);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xffe2b8, // warm soft petal color
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+  });
+
+  for (let i = 0; i < count; i++) {
+    const p = new THREE.Mesh(geo, mat.clone());
+    p.position.set(
+      (Math.random() - 0.5) * 1.4,
+      (Math.random() - 0.5) * 2.2,
+      (Math.random() - 0.5) * 0.5 + 0.1
+    );
+    p.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    p.userData = {
+      speedY: 0.003 + Math.random() * 0.004,
+      driftX: (Math.random() - 0.5) * 0.002,
+      rotX: (Math.random() - 0.5) * 0.03,
+      rotY: (Math.random() - 0.5) * 0.03,
+      rotZ: (Math.random() - 0.5) * 0.04
+    };
+    group.add(p);
+  }
+  return group;
+}
+
+// ── Start WebAR Pipeline Directly ────────────────────────────────────────────
+async function startAR() {
+  startPrompt.style.display = 'none';
+  loadingView.style.display = 'flex';
+  loadStatus.textContent = 'Starting Camera & Target Engine...';
+
+  // Silent audio priming to satisfy mobile browser autoplay policy
+  try {
+    video.muted = false;
+    const p = video.play();
+    if (p !== undefined) {
+      await p;
+      video.pause();
+      video.currentTime = 0;
+    }
+  } catch (err) {
+    console.warn('Audio prime notification:', err);
+    video.muted = true;
+    try {
+      await video.play();
+      video.pause();
+      video.currentTime = 0;
+      video.muted = false;
+    } catch(e) {}
+  }
+
+  // Ensure AR container is visible
+  arContainer.style.display = 'block';
+
+  try {
+    mindarThree = new MindARThree({
+      container: arContainer,
+      imageTargetSrc: './targets.mind',
+      filterMinCF: 0.0001,
+      filterBeta: 0.01,
+      warmupTolerance: 3,
+      missTolerance: 10,
+      uiLoading: "no",
+      uiScanning: "no"
+    });
+
+    const { renderer, scene, camera } = mindarThree;
+
+    // Soft Ambient Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    scene.add(ambientLight);
+
+    // Anchor on Card Image Target (index 0)
+    anchor = mindarThree.addAnchor(0);
+
+    // Card Transform Group
+    cardGroup = new THREE.Group();
+    anchor.group.add(cardGroup);
+
+    // ── 1. Contact Shadow for elevated mode ──
+    const shadowGeo = new THREE.PlaneGeometry(CARD_WIDTH * 1.15, CARD_HEIGHT * 1.1);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: createContactShadowTexture(),
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false
+    });
+    shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.position.set(0, 0, 0.005);
+    shadowMesh.visible = false; // hidden in flush mode
+    anchor.group.add(shadowMesh);
+
+    // ── 2. Golden Edge Border (Simulates luxurious thick cardstock) ──
+    const borderGeo = new THREE.BoxGeometry(CARD_WIDTH + 0.015, CARD_HEIGHT + 0.015, 0.012);
+    const borderMat = new THREE.MeshBasicMaterial({
+      color: 0xd4af37,
+      transparent: true,
+      opacity: 0.8
+    });
+    edgeBevel = new THREE.Mesh(borderGeo, borderMat);
+    edgeBevel.position.set(0, 0, 0.004);
+    cardGroup.add(edgeBevel);
+
+    // ── 3. High-Definition Video Texture & Plane ──
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.colorSpace = THREE.SRGBColorSpace;
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+
+    const videoGeo = new THREE.PlaneGeometry(CARD_WIDTH, CARD_HEIGHT);
+    const videoMat = new THREE.MeshBasicMaterial({
+      map: videoTexture,
+      side: THREE.DoubleSide
+    });
+    videoMesh = new THREE.Mesh(videoGeo, videoMat);
+    videoMesh.position.set(0, 0, 0.01);
+    cardGroup.add(videoMesh);
+
+    // ── 4. Atmospheric Petal Particles ──
+    petalsGroup = createPetals();
+    anchor.group.add(petalsGroup);
+
+    // ── 5. Target Found & Lost Callbacks (Strict Audio Sync) ─────────────────
+    anchor.onTargetFound = () => {
+      isTargetFound = true;
+      scannerOverlay.style.display = 'none';
+      hudDot.className = 'badge-dot';
+      hudStatusText.textContent = 'Card Locked • Playing';
+      captionTitle.textContent = '✨ Invitation Active';
+      captionText.textContent = 'Playing animated video & soundtrack';
+
+      // STRICT AUDIO FIX: Only play when target is actually scanned!
+      if (video.paused) {
+        video.play().catch(e => console.warn('Play error on target found:', e));
+      }
+      playBtn.textContent = '⏸️';
+
+      if (navigator.vibrate) {
+        try { navigator.vibrate(60); } catch(e) {}
+      }
+    };
+
+    anchor.onTargetLost = () => {
+      isTargetFound = false;
+      scannerOverlay.style.display = 'flex';
+      hudDot.className = 'badge-dot lost';
+      hudStatusText.textContent = 'Searching for Card...';
+      captionTitle.textContent = '🔍 Point at Card';
+      captionText.textContent = 'Audio paused until card is scanned';
+
+      // STRICT AUDIO FIX: Immediately pause when card leaves camera
+      video.pause();
+      playBtn.textContent = '▶️';
+    };
+
+    // Start MindAR
+    await mindarThree.start();
+
+    loadingView.style.display = 'none';
+    scannerOverlay.style.display = 'flex';
+    hud.style.display = 'block';
+
+    // ── Render & Animation Loop ──────────────────────────────────────────────
+    renderer.setAnimationLoop(() => {
+      // Animate floating petals when card is detected
+      if (petalsGroup && isTargetFound) {
+        petalsGroup.children.forEach(p => {
+          p.position.y -= p.userData.speedY;
+          p.position.x += p.userData.driftX;
+          p.rotation.x += p.userData.rotX;
+          p.rotation.y += p.userData.rotY;
+          p.rotation.z += p.userData.rotZ;
+
+          // Recycle petals
+          if (p.position.y < -1.1) {
+            p.position.y = 1.1;
+            p.position.x = (Math.random() - 0.5) * 1.4;
+          }
+        });
+      }
+
+      // Smooth elevation transition
+      if (cardGroup) {
+        const targetZ = isElevatedPopout ? 0.12 : 0.005;
+        cardGroup.position.z += (targetZ - cardGroup.position.z) * 0.1;
+      }
+
+      renderer.render(scene, camera);
+    });
+
+  } catch (err) {
+    console.error('AR Engine Error:', err);
+    loadingView.style.display = 'none';
+    errorMessage.textContent = err?.message || 'Camera access or WebGL initialization failed.';
+    errorBox.style.display = 'block';
+  }
+}
+
+// ── Display Mode Switcher ────────────────────────────────────────────────────
+function setDisplayMode(elevated) {
+  isElevatedPopout = elevated;
+  if (elevated) {
+    modePopoutBtn.classList.add('active');
+    modeLivingBtn.classList.remove('active');
+    if (shadowMesh) shadowMesh.visible = true;
+  } else {
+    modeLivingBtn.classList.add('active');
+    modePopoutBtn.classList.remove('active');
+    if (shadowMesh) shadowMesh.visible = false;
+  }
+}
+
+// ── Event Handlers ───────────────────────────────────────────────────────────
+startBtn.addEventListener('click', startAR);
+startPrompt.addEventListener('click', (e) => {
+  if (e.target !== startBtn) startAR();
+});
+
+viewCardBtn.addEventListener('click', () => { targetModal.style.display = 'flex'; });
+closeModalBtn.addEventListener('click', () => { targetModal.style.display = 'none'; });
+
+audioBtn.addEventListener('click', () => {
+  video.muted = !video.muted;
+  audioBtn.textContent = video.muted ? '🔇' : '🔊';
+});
+
+playBtn.addEventListener('click', () => {
+  if (video.paused) {
+    video.play();
+    playBtn.textContent = '⏸️';
+  } else {
+    video.pause();
+    playBtn.textContent = '▶️';
+  }
+});
+
+replayBtn.addEventListener('click', () => {
+  video.currentTime = 0;
+  if (isTargetFound) {
+    video.play();
+    playBtn.textContent = '⏸️';
+  }
+});
+
+modeLivingBtn.addEventListener('click', () => setDisplayMode(false));
+modePopoutBtn.addEventListener('click', () => setDisplayMode(true));
+
+exitBtn.addEventListener('click', () => {
+  window.location.reload();
+});
+</script>
+</body>
+</html>
