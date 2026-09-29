@@ -429,6 +429,7 @@ const errorMessage = document.getElementById('errorMessage');
 // State
 let mindarThree = null;
 let anchor = null;
+let arStage = null; // Independent persistent stage in scene space (prevents zero-matrix collapse)
 let cardPivotGroup = null; // Hinged/pivoted at bottom edge
 let videoMesh = null;
 let shadowMesh = null;
@@ -437,8 +438,19 @@ let edgeBevel = null;
 let petalsGroup = null;
 
 let isTargetFound = false;
+let hasEverLocked = false;
 let currentAngleMode = 'auto'; // 'auto' | 'easel' | 'stand' | 'flush'
 let currentZoomScale = 1.25;
+
+// Interpolation & stability vectors
+const currentPos = new THREE.Vector3();
+const currentQuat = new THREE.Quaternion();
+const currentScale = new THREE.Vector3(1, 1, 1);
+const targetPos = new THREE.Vector3();
+const targetQuat = new THREE.Quaternion();
+const targetScale = new THREE.Vector3(1, 1, 1);
+const lastValidMatrix = new THREE.Matrix4();
+let isPoseInitialized = false;
 
 // Target Card Dimensions: 800x1239 (H/W = 1.5488)
 const CARD_WIDTH = 1.0;
@@ -534,8 +546,8 @@ async function startAR() {
       imageTargetSrc: './targets.mind',
       filterMinCF: 0.0001,
       filterBeta: 0.01,
-      warmupTolerance: 3,
-      missTolerance: 10,
+      warmupTolerance: 2,
+      missTolerance: 60,
       uiLoading: "no",
       uiScanning: "no"
     });
@@ -549,6 +561,12 @@ async function startAR() {
     // Anchor on Card Image Target (index 0)
     anchor = mindarThree.addAnchor(0);
 
+    // ── Persistent AR Stage (Attached to Scene so it survives grazing angles & MindAR drops) ──
+    arStage = new THREE.Group();
+    arStage.matrixAutoUpdate = false;
+    arStage.visible = false;
+    scene.add(arStage);
+
     // ── 1. Contact Ground Shadow on Card Surface ──
     const shadowGeo = new THREE.PlaneGeometry(CARD_WIDTH * 1.25, 0.4);
     const shadowMat = new THREE.MeshBasicMaterial({
@@ -560,7 +578,7 @@ async function startAR() {
     shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
     // Positioned along the bottom hinge line on the card surface
     shadowMesh.position.set(0, -HALF_HEIGHT, 0.003);
-    anchor.group.add(shadowMesh);
+    arStage.add(shadowMesh);
 
     // ── 2. 3D Golden Pedestal Hinge Bar at Bottom Edge ──
     const standGeo = new THREE.BoxGeometry(CARD_WIDTH + 0.04, 0.024, 0.02);
@@ -569,12 +587,12 @@ async function startAR() {
     });
     standPedestal = new THREE.Mesh(standGeo, standMat);
     standPedestal.position.set(0, -HALF_HEIGHT, 0.01);
-    anchor.group.add(standPedestal);
+    arStage.add(standPedestal);
 
     // ── 3. Pivot Transform Group (Hinged at Bottom Edge: y = -HALF_HEIGHT) ──
     cardPivotGroup = new THREE.Group();
     cardPivotGroup.position.set(0, -HALF_HEIGHT, 0.012);
-    anchor.group.add(cardPivotGroup);
+    arStage.add(cardPivotGroup);
 
     // ── 4. High-Definition Video Texture & Material (NO Z-FIGHTING) ──
     const videoTexture = new THREE.VideoTexture(video);
@@ -609,22 +627,23 @@ async function startAR() {
 
     // ── 6. Atmospheric Floating Petals ──
     petalsGroup = createPetals();
-    anchor.group.add(petalsGroup);
+    arStage.add(petalsGroup);
 
     // Apply initial angle and scale
     applyAngleMode(currentAngleMode);
     applyZoomScale(currentZoomScale);
 
-    // ── 7. Target Found & Lost Callbacks (Strict Audio Sync) ─────────────────
+    // ── 7. Target Found & Lost Callbacks (Sticky Persistence) ─────────────────
     anchor.onTargetFound = () => {
       isTargetFound = true;
+      hasEverLocked = true;
       scannerOverlay.style.display = 'none';
       hudDot.className = 'badge-dot';
       hudStatusText.textContent = 'Card Locked • Playing';
       captionTitle.textContent = '✨ Invitation Active';
       captionText.textContent = 'Playing animated video & soundtrack';
 
-      // STRICT AUDIO: Only play when target is actually scanned!
+      // Start playing when target is first scanned
       if (video.paused) {
         video.play().catch(e => console.warn('Play error on target found:', e));
       }
@@ -637,13 +656,24 @@ async function startAR() {
 
     anchor.onTargetLost = () => {
       isTargetFound = false;
+
+      // STICKY LOCK: Once scanned, DO NOT pause audio/video or flash the scanner box!
+      // The user may have tilted their phone vertically to watch the screen comfortably.
+      if (hasEverLocked) {
+        hudDot.className = 'badge-dot';
+        hudStatusText.textContent = 'Card Anchored • Playing';
+        captionTitle.textContent = '✨ Invitation Active';
+        captionText.textContent = 'Playing animated video & soundtrack';
+        // Video continues uninterrupted!
+        return;
+      }
+
+      // Only if card has never been scanned yet:
       scannerOverlay.style.display = 'flex';
       hudDot.className = 'badge-dot lost';
       hudStatusText.textContent = 'Searching for Card...';
       captionTitle.textContent = '🔍 Point at Card';
-      captionText.textContent = 'Audio paused until card is scanned';
-
-      // STRICT AUDIO: Instantly pause when card leaves camera
+      captionText.textContent = 'Aim camera at the invitation card to start';
       video.pause();
       playBtn.textContent = '▶️';
     };
@@ -657,17 +687,54 @@ async function startAR() {
 
     // ── Render & Animation Loop ──────────────────────────────────────────────
     renderer.setAnimationLoop(() => {
-      // 1. Dynamic Auto Camera-Facing Billboard
-      if (currentAngleMode === 'auto' && isTargetFound && cardPivotGroup && anchor.group) {
-        anchor.group.getWorldQuaternion(parentQuat);
+      // 1. Maintain Stable 3D Anchor Transform with Smooth Filtering
+      if (anchor && anchor.group && arStage) {
+        const m = anchor.group.matrix.elements;
+        // MindAR sets matrix to Xb (all zeros) on tracking loss.
+        // A valid tracking matrix has non-zero diagonal elements.
+        const isTracking = (m[0] !== 0 || m[5] !== 0 || m[10] !== 0);
+
+        if (isTracking) {
+          anchor.group.matrix.decompose(targetPos, targetQuat, targetScale);
+
+          if (!isPoseInitialized) {
+            currentPos.copy(targetPos);
+            currentQuat.copy(targetQuat);
+            currentScale.copy(targetScale);
+            isPoseInitialized = true;
+          } else {
+            // Smooth lerp/slerp to dampen hand tremors and grazing angle jitters
+            currentPos.lerp(targetPos, 0.35);
+            currentQuat.slerp(targetQuat, 0.35);
+            currentScale.lerp(targetScale, 0.35);
+          }
+
+          arStage.matrix.compose(currentPos, currentQuat, currentScale);
+          arStage.matrixWorld.copy(arStage.matrix);
+          arStage.matrixWorldNeedsUpdate = true;
+          lastValidMatrix.copy(arStage.matrix);
+          arStage.visible = true;
+        } else if (hasEverLocked) {
+          // When phone is tilted vertically or card is partially out of frame,
+          // maintain last valid anchor pose so video remains pinned on table.
+          arStage.matrix.copy(lastValidMatrix);
+          arStage.matrixWorld.copy(arStage.matrix);
+          arStage.matrixWorldNeedsUpdate = true;
+          arStage.visible = true;
+        }
+      }
+
+      // 2. Dynamic Auto Camera-Facing Billboard
+      if (currentAngleMode === 'auto' && arStage && arStage.visible && cardPivotGroup) {
+        arStage.getWorldQuaternion(parentQuat);
         targetLocalQuat.copy(parentQuat).invert();
         
         // Smoothly orient to face viewer directly without jitter
         cardPivotGroup.quaternion.slerp(targetLocalQuat, 0.16);
       }
 
-      // 2. Animate floating petals when card is detected
-      if (petalsGroup && isTargetFound) {
+      // 3. Animate floating petals when card is detected/locked
+      if (petalsGroup && (isTargetFound || hasEverLocked)) {
         petalsGroup.children.forEach(p => {
           p.position.y -= p.userData.speedY;
           p.position.x += p.userData.driftX;
@@ -767,7 +834,7 @@ playBtn.addEventListener('click', () => {
 
 replayBtn.addEventListener('click', () => {
   video.currentTime = 0;
-  if (isTargetFound) {
+  if (isTargetFound || hasEverLocked) {
     video.play();
     playBtn.textContent = '⏸️';
   }
