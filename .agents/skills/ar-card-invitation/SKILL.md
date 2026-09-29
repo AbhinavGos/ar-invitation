@@ -159,3 +159,60 @@ Always execute pipeline commands chained or via `scaffold_card.mjs` to maintain 
 * Terminal allowlist: `node scripts/scaffold_card.mjs *`, `node scripts/compile_target.mjs *`, `git *`, `gh *`.
 * GitHub grant: `gh.create({"org": "AbhinavGos", "repo": "*"})` and `git.create({"org": "AbhinavGos", "repo": "*", "branch": "*"})`.
 * Every card gets its **own dedicated repository and live URL** (`https://abhinavgos.github.io/<slug>/`), preserving existing cards intact.
+
+---
+
+## 7. Video AR & Holographic Pop-Out Engine (Learned Rules & Best Practices)
+
+When building WebAR cards anchored to videos (green-screen talking avatars, animated wedding invitations, living stationery):
+
+### 1. Strict Audio-on-Scan Playback (Silent Autoplay Unlock)
+* **Mobile Policy Challenge:** Mobile browsers (iOS Safari, Android Chrome) block unmuted audio autoplay without an initial user interaction.
+* **The Rule:** Silently prime `<video>` on the initial user interaction tap (`video.play().then(() => { video.pause(); video.currentTime = 0; })`), keeping it completely silent while the camera searches.
+* **On Detection (`anchor.onTargetFound`):** Call `video.play()`. Audio and dialogue begin *strictly* when the physical card is locked.
+* **On Lost (`anchor.onTargetLost`):** ALWAYS call `video.pause()` immediately so audio never continues blaring when the user points away.
+
+### 2. Absolute Prevention of GPU Depth Buffer Z-Fighting
+* **The Root Cause:** Placing solid 3D geometries (like `BoxGeometry` cardstock or solid border frames) at the same $Z$ coordinate as a `VideoTexture` plane causes catastrophic depth-buffer z-fighting—resulting in diagonal crosshatch, checkerboard, or stair-step stipple patterns across the video.
+* **The Rule:** NEVER place solid surfaces coplanar with the video plane.
+  * Recess any backing cardstock strictly behind the video: `backMesh.position.set(0, 0, -0.004)`.
+  * Offset the video plane forward: `videoMesh.position.set(0, 0, +0.002)`.
+  * For borders/bevels, use a hollow outer frame or separate perimeter strips that do not cover the video area.
+
+### 3. Bottom-Hinged 3D Upright Orientation & Auto Camera-Facing Billboarding
+* **The Root Cause:** A flat plane ($z = 0$) lying parallel to a card on a desk or tablet forces the user to awkwardly look straight down, causing severe foreshortening. A fixed 90° vertical plane viewed from above looks like a sliced knife-edge.
+* **The Rule:**
+  1. **Hinge at Bottom Edge:** Offset video geometry so its pivot is at the bottom hinge line:
+     ```javascript
+     const videoGeo = new THREE.PlaneGeometry(w, h);
+     videoGeo.translate(0, h / 2, 0); // Bottom is at (0, 0, 0) of cardPivotGroup
+     cardPivotGroup.position.set(0, -h / 2, 0.012);
+     ```
+  2. **Dynamic Auto-Billboard Default:** In `setAnimationLoop`, smoothly orient `cardPivotGroup` to face the camera:
+     ```javascript
+     if (isTargetFound && currentAngleMode === 'auto') {
+       anchor.group.getWorldQuaternion(parentQuat);
+       targetLocalQuat.copy(parentQuat).invert();
+       cardPivotGroup.quaternion.slerp(targetLocalQuat, 0.16);
+     }
+     ```
+  3. **Preset Angles:** Always provide one-tap dock buttons:
+     * `👁️ Face Camera` (Auto-billboard default: always faces the camera directly)
+     * `📐 60° Pop-Up Easel` (Tilted upright like a luxury desk photo frame)
+     * `🧍 90° Upright` (Vertical standing)
+     * `📄 Flush on Card` (Flat living paper)
+  4. **Contact Shadow & Pedestal Bar:** Anchor a soft radial contact shadow and a slim 3D golden pedestal bar along the bottom hinge on the card surface ($z = 0.003$).
+
+### 4. Target Aspect Ratio Viewfinder Framing
+* Always size the viewfinder box to the **exact aspect ratio of the target image**:
+  ```css
+  .scanner-box {
+    width: min(72vw, 290px);
+    height: calc(min(72vw, 290px) * (targetHeight / targetWidth));
+  }
+  ```
+  Add golden corner brackets and an animated vertical scanning laser beam.
+
+### 5. Direct Camera Entry (Frictionless UX)
+* For video cards and invitations, avoid heavy marketing multi-screen landing pages.
+* Provide an immediate, translucent single-tap prompt ("Start Scanner") over the camera view that unlocks permissions and disappears instantly into scanning mode.
