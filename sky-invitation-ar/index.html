@@ -7,6 +7,9 @@
 <meta name="theme-color" content="#0a0f18">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Anchit &amp; Natasha Wedding Invitation · AR Camera Scanner</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -122,6 +125,12 @@
     position: fixed; inset: 0; z-index: 10; pointer-events: none;
     display: flex; align-items: center; justify-content: center;
     flex-direction: column;
+  }
+  #scanner-overlay.locked-mode {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .scanner-box {
@@ -339,6 +348,7 @@
     <div class="hud-badge" id="hudStatus">
       <div class="badge-dot lost" id="hudDot"></div>
       <span id="hudStatusText">Searching for Card...</span>
+      <span style="font-size: 9px; opacity: 0.65; margin-left: 4px; border-left: 1px solid rgba(244,192,104,0.4); padding-left: 6px;">v2.2</span>
     </div>
     <div class="hud-actions">
       <button class="icon-btn" id="audioBtn" title="Toggle Audio">🔊</button>
@@ -439,6 +449,7 @@ let petalsGroup = null;
 
 let isTargetFound = false;
 let hasEverLocked = false;
+let userManuallyPaused = false;
 let currentAngleMode = 'auto'; // 'auto' | 'easel' | 'stand' | 'flush'
 let currentZoomScale = 1.25;
 
@@ -543,11 +554,11 @@ async function startAR() {
   try {
     mindarThree = new MindARThree({
       container: arContainer,
-      imageTargetSrc: './targets.mind',
+      imageTargetSrc: './targets.mind?v=2.2',
       filterMinCF: 0.0001,
       filterBeta: 0.01,
       warmupTolerance: 2,
-      missTolerance: 60,
+      missTolerance: 120,
       uiLoading: "no",
       uiScanning: "no"
     });
@@ -638,13 +649,14 @@ async function startAR() {
       isTargetFound = true;
       hasEverLocked = true;
       scannerOverlay.style.display = 'none';
+      scannerOverlay.classList.add('locked-mode');
       hudDot.className = 'badge-dot';
       hudStatusText.textContent = 'Card Locked • Playing';
       captionTitle.textContent = '✨ Invitation Active';
       captionText.textContent = 'Playing animated video & soundtrack';
 
       // Start playing when target is first scanned
-      if (video.paused) {
+      if (video.paused && !userManuallyPaused) {
         video.play().catch(e => console.warn('Play error on target found:', e));
       }
       playBtn.textContent = '⏸️';
@@ -658,13 +670,18 @@ async function startAR() {
       isTargetFound = false;
 
       // STICKY LOCK: Once scanned, DO NOT pause audio/video or flash the scanner box!
-      // The user may have tilted their phone vertically to watch the screen comfortably.
+      // Even if phone is tilted vertically or card is partially out of frame:
       if (hasEverLocked) {
+        scannerOverlay.style.display = 'none';
+        scannerOverlay.classList.add('locked-mode');
         hudDot.className = 'badge-dot';
         hudStatusText.textContent = 'Card Anchored • Playing';
         captionTitle.textContent = '✨ Invitation Active';
         captionText.textContent = 'Playing animated video & soundtrack';
-        // Video continues uninterrupted!
+        if (video.paused && !userManuallyPaused) {
+          video.play().catch(() => {});
+          playBtn.textContent = '⏸️';
+        }
         return;
       }
 
@@ -749,6 +766,12 @@ async function startAR() {
         });
       }
 
+      // 4. Guaranteed continuous playback once scanned
+      if (hasEverLocked && !userManuallyPaused && video.paused) {
+        video.play().catch(() => {});
+        playBtn.textContent = '⏸️';
+      }
+
       renderer.render(scene, camera);
     });
 
@@ -824,9 +847,11 @@ audioBtn.addEventListener('click', () => {
 
 playBtn.addEventListener('click', () => {
   if (video.paused) {
+    userManuallyPaused = false;
     video.play();
     playBtn.textContent = '⏸️';
   } else {
+    userManuallyPaused = true;
     video.pause();
     playBtn.textContent = '▶️';
   }
@@ -834,6 +859,7 @@ playBtn.addEventListener('click', () => {
 
 replayBtn.addEventListener('click', () => {
   video.currentTime = 0;
+  userManuallyPaused = false;
   if (isTargetFound || hasEverLocked) {
     video.play();
     playBtn.textContent = '⏸️';
