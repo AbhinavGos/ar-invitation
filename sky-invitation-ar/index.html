@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0a0f18">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>AR Video Invitation · Live Camera Scanner</title>
+<title>Anchit &amp; Natasha Wedding Invitation · AR Camera Scanner</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -126,7 +126,7 @@
 
   .scanner-box {
     width: min(72vw, 290px);
-    height: calc(min(72vw, 290px) * (1920 / 1080)); /* Exactly 9:16 portrait */
+    height: calc(min(72vw, 290px) * 1.5488); /* Matches Anchit & Natasha portrait target (800x1239, ratio 1.5488) */
     border: 2px dashed rgba(244, 192, 104, 0.7);
     border-radius: 20px;
     position: relative;
@@ -312,9 +312,9 @@
 <!-- Direct Tap to Start Scanner Overlay -->
 <div id="start-prompt">
   <div class="start-card">
-    <div class="camera-icon-circle">📷</div>
-    <h2>Invitation AR Scanner</h2>
-    <p>Point camera at the invitation card to bring the animated story to life with music.</p>
+    <div class="camera-icon-circle">💍</div>
+    <h2>Anchit &amp; Natasha</h2>
+    <p>Point camera at the wedding invitation card to bring the animated invitation to life with music.</p>
     <button class="btn-tap-start" id="startBtn">Start Scanner</button>
   </div>
 </div>
@@ -325,12 +325,12 @@
   <div class="load-text" id="loadStatus">Initializing Camera &amp; AI Tracker...</div>
 </div>
 
-<!-- Portrait Scanning Viewfinder (Matches 9:16 Portrait Target Image) -->
+<!-- Portrait Scanning Viewfinder (Matches Anchit & Natasha Portrait Target) -->
 <div id="scanner-overlay">
   <div class="scanner-box">
     <div class="scanner-line"></div>
   </div>
-  <div class="scanner-hint">✨ Aim camera at the Invitation Card</div>
+  <div class="scanner-hint">✨ Aim camera at Anchit &amp; Natasha Card</div>
 </div>
 
 <!-- Active AR HUD -->
@@ -374,10 +374,10 @@
 <!-- Target Card Modal (For testing on second screen or laptop) -->
 <div id="target-modal">
   <div class="modal-box">
-    <h3>Target Card</h3>
-    <p>Aim your camera at this vertical card artwork to trigger the AR experience:</p>
+    <h3>Anchit &amp; Natasha Wedding Invite</h3>
+    <p>Aim your camera at this invitation card artwork to trigger the AR experience:</p>
     <div class="modal-img-wrap">
-      <img src="./target_card.jpg" class="modal-img" alt="Target Card Artwork">
+      <img src="./target_card.png" class="modal-img" alt="Target Card Artwork">
     </div>
     <button class="btn-modal-close" id="closeModalBtn">Close / Return to Camera</button>
   </div>
@@ -440,10 +440,15 @@ let isTargetFound = false;
 let currentAngleMode = 'auto'; // 'auto' | 'easel' | 'stand' | 'flush'
 let currentZoomScale = 1.25;
 
-// 9:16 Portrait Target & Video Aspect Ratio
+// Target Card Dimensions: 800x1239 (H/W = 1.5488)
 const CARD_WIDTH = 1.0;
-const CARD_HEIGHT = 1.0 * (1920 / 1080); // 1.7778
-const HALF_HEIGHT = CARD_HEIGHT / 2;     // 0.8889
+const CARD_HEIGHT = 1.5488;
+const HALF_HEIGHT = CARD_HEIGHT / 2;     // 0.7744
+
+// Video Dimensions: 720x1280 (9:16 portrait, preserving authentic aspect ratio)
+const VIDEO_WIDTH = 0.96;
+const VIDEO_HEIGHT = VIDEO_WIDTH * (1280 / 720); // ~1.7067
+const HALF_VIDEO_HEIGHT = VIDEO_HEIGHT / 2;       // ~0.8533
 
 // Reusable math objects for camera-facing orientation
 const parentQuat = new THREE.Quaternion();
@@ -579,8 +584,8 @@ async function startAR() {
     videoTexture.generateMipmaps = false;
 
     // Shift geometry so (0,0) is at the bottom hinge
-    const videoGeo = new THREE.PlaneGeometry(CARD_WIDTH, CARD_HEIGHT);
-    videoGeo.translate(0, HALF_HEIGHT, 0); // Bottom is at (0, 0, 0) of cardPivotGroup
+    const videoGeo = new THREE.PlaneGeometry(VIDEO_WIDTH, VIDEO_HEIGHT);
+    videoGeo.translate(0, HALF_VIDEO_HEIGHT, 0); // Bottom is at (0, 0, 0) of cardPivotGroup
 
     const videoMat = new THREE.MeshBasicMaterial({
       map: videoTexture,
@@ -592,8 +597,8 @@ async function startAR() {
 
     // ── 5. Recessed Golden Backing Card (Strictly behind at z = -0.004) ──
     // Zero z-fighting because its front face is at -0.001, safely behind videoMesh (+0.002)
-    const backGeo = new THREE.PlaneGeometry(CARD_WIDTH + 0.02, CARD_HEIGHT + 0.02);
-    backGeo.translate(0, HALF_HEIGHT, 0);
+    const backGeo = new THREE.PlaneGeometry(VIDEO_WIDTH + 0.02, VIDEO_HEIGHT + 0.02);
+    backGeo.translate(0, HALF_VIDEO_HEIGHT, 0);
     const backMat = new THREE.MeshBasicMaterial({
       color: 0xc89b38,
       side: THREE.DoubleSide
