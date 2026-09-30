@@ -46,9 +46,16 @@
     overflow: hidden; z-index: 0; display: block;
   }
 
-  /* Hidden native video element */
+  /* Native video element (kept active with 1px footprint to retain hardware acceleration & audio priority) */
   #arVideo {
-    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0.01;
+    pointer-events: none;
+    z-index: -100;
   }
 
   /* Direct Tap-To-Start Overlay (1 tap grants camera & audio) */
@@ -348,7 +355,7 @@
     <div class="hud-badge" id="hudStatus">
       <div class="badge-dot lost" id="hudDot"></div>
       <span id="hudStatusText">Searching for Card...</span>
-      <span style="font-size: 9px; opacity: 0.65; margin-left: 4px; border-left: 1px solid rgba(244,192,104,0.4); padding-left: 6px;">v2.2</span>
+      <span style="font-size: 9px; opacity: 0.65; margin-left: 4px; border-left: 1px solid rgba(244,192,104,0.4); padding-left: 6px;">v2.3</span>
     </div>
     <div class="hud-actions">
       <button class="icon-btn" id="audioBtn" title="Toggle Audio">🔊</button>
@@ -554,16 +561,19 @@ async function startAR() {
   try {
     mindarThree = new MindARThree({
       container: arContainer,
-      imageTargetSrc: './targets.mind?v=2.2',
+      imageTargetSrc: './targets.mind?v=2.3',
       filterMinCF: 0.0001,
       filterBeta: 0.01,
       warmupTolerance: 2,
-      missTolerance: 120,
+      missTolerance: 90,
       uiLoading: "no",
       uiScanning: "no"
     });
 
     const { renderer, scene, camera } = mindarThree;
+
+    // Cap devicePixelRatio to 1.5 to eliminate mobile GPU thermal throttling & frame hangs
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 
     // Ambient Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
@@ -766,12 +776,6 @@ async function startAR() {
         });
       }
 
-      // 4. Guaranteed continuous playback once scanned
-      if (hasEverLocked && !userManuallyPaused && video.paused) {
-        video.play().catch(() => {});
-        playBtn.textContent = '⏸️';
-      }
-
       renderer.render(scene, camera);
     });
 
@@ -855,6 +859,22 @@ playBtn.addEventListener('click', () => {
     video.pause();
     playBtn.textContent = '▶️';
   }
+});
+
+// Resilient playback recovery without polling in animation loop
+video.addEventListener('pause', () => {
+  if (hasEverLocked && !userManuallyPaused) {
+    setTimeout(() => {
+      if (hasEverLocked && !userManuallyPaused && video.paused) {
+        video.play().catch(() => {});
+        playBtn.textContent = '⏸️';
+      }
+    }, 200);
+  }
+});
+
+video.addEventListener('playing', () => {
+  playBtn.textContent = '⏸️';
 });
 
 replayBtn.addEventListener('click', () => {
