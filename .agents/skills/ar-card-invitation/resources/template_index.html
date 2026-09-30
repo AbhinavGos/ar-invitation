@@ -40,13 +40,47 @@
 
   /* Scanning Viewfinder Overlay (Portrait Aspect Ratio ~ 1 : 1.55 for Wedding Cards) */
   #scanner-overlay{position:fixed;inset:0;z-index:10;display:none;pointer-events:none;align-items:center;justify-content:center;flex-direction:column}
-  .scanner-box{width:min(68vw,260px);height:min(105vw,400px);border:2px dashed rgba(245,203,108,.75);border-radius:18px;position:relative;animation:pulse-border 2s infinite ease-in-out}
-  .scanner-box::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#ffd700,transparent);box-shadow:0 0 14px #ffd700;animation:scan-line 2.2s infinite ease-in-out}
-  
-  @keyframes scan-line{0%{top:0%} 50%{top:98%} 100%{top:0%}}
-  @keyframes pulse-border{0%,100%{border-color:rgba(245,203,108,.6)} 50%{border-color:rgba(255,230,150,1)}}
+  .scanner-box{
+    width:min(68vw,260px);height:min(105vw,400px);
+    border:1.5px solid rgba(245,203,108,.35);border-radius:18px;position:relative;
+    box-shadow:0 0 24px rgba(0,0,0,.5),inset 0 0 16px rgba(245,203,108,.08);
+  }
+  .scanner-box::before, .scanner-box::after {
+    content:"";position:absolute;width:24px;height:24px;
+    border-color:#ffd782;border-style:solid;pointer-events:none;
+  }
+  .scanner-box::before {
+    top:-2px;left:-2px;border-width:3.5px 0 0 3.5px;border-top-left-radius:18px;
+  }
+  .scanner-box::after {
+    bottom:-2px;right:-2px;border-width:0 3.5px 3.5px 0;border-bottom-right-radius:18px;
+  }
+  .scanner-corners-alt {
+    position:absolute;inset:0;pointer-events:none;
+  }
+  .scanner-corners-alt::before, .scanner-corners-alt::after {
+    content:"";position:absolute;width:24px;height:24px;
+    border-color:#ffd782;border-style:solid;pointer-events:none;
+  }
+  .scanner-corners-alt::before {
+    top:-2px;right:-2px;border-width:3.5px 3.5px 0 0;border-top-right-radius:18px;
+  }
+  .scanner-corners-alt::after {
+    bottom:-2px;left:-2px;border-width:0 0 3.5px 3.5px;border-bottom-left-radius:18px;
+  }
+  .scanner-line {
+    position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,transparent,#ffe29e,#dfa248,transparent);
+    box-shadow:0 0 16px #f4c068;
+    animation:scanSweep 2.2s infinite ease-in-out;
+  }
+  @keyframes scanSweep {
+    0% { top:2%; opacity:0.3; }
+    50% { top:96%; opacity:1; }
+    100% { top:2%; opacity:0.3; }
+  }
 
-  .scanner-hint{margin-top:20px;background:rgba(25,8,12,.85);border:1px solid var(--border-gold);padding:10px 22px;border-radius:999px;font-size:12px;color:var(--accent-gold);letter-spacing:.06em;text-transform:uppercase;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,.6);text-align:center}
+  .scanner-hint{margin-top:20px;background:rgba(25,8,12,.88);border:1px solid var(--border-gold);padding:10px 22px;border-radius:999px;font-size:12px;color:var(--accent-gold);letter-spacing:.06em;text-transform:uppercase;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,.6);text-align:center}
 
   /* AR Overlay UI */
   #ui{position:fixed;inset:0;z-index:15;display:none;pointer-events:none}
@@ -55,7 +89,19 @@
   .top-actions{display:flex;gap:10px}
   .icon-btn{pointer-events:auto;border:1px solid var(--border-gold);border-radius:50%;width:42px;height:42px;background:rgba(20,8,9,.75);color:var(--accent-gold);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);box-shadow:0 4px 12px rgba(0,0,0,.5)}
 
-  .card-locked-badge{position:absolute;top:calc(env(safe-area-inset-top,16px) + 54px);left:50%;transform:translateX(-50%);background:rgba(21,128,61,.85);border:1px solid rgba(74,222,128,.6);padding:6px 16px;border-radius:999px;font-size:11px;color:#fff;backdrop-filter:blur(6px);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);display:none}
+  .card-locked-badge{
+    position:absolute;top:calc(env(safe-area-inset-top,16px) + 54px);left:50%;transform:translateX(-50%);
+    background:rgba(18,28,22,.94);border:1px solid rgba(74,222,128,.65);
+    padding:6px 16px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;
+    backdrop-filter:blur(10px);letter-spacing:.06em;text-transform:uppercase;
+    white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.6);display:none;
+    align-items:center;gap:6px;
+  }
+  .badge-dot {
+    width:8px;height:8px;border-radius:50%;
+    background:#00ff88;box-shadow:0 0 8px #00ff88;
+    display:inline-block;
+  }
 
   /* Bottom Dock with Story Progress & Event Details */
   .bottom-dock{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom,18px));transform:translateX(-50%);width:min(94%,560px);text-align:center;transition:opacity 0.4s ease}
@@ -106,7 +152,10 @@
 
 <!-- Scanning Viewfinder -->
 <div id="scanner-overlay">
-  <div class="scanner-box"></div>
+  <div class="scanner-box">
+    <div class="scanner-corners-alt"></div>
+    <div class="scanner-line"></div>
+  </div>
   <div class="scanner-hint" id="scannerHint">✨ Point Camera At Card</div>
 </div>
 
@@ -131,7 +180,7 @@
     </div>
   </div>
 
-  <div class="card-locked-badge" id="lockedBadge">✨ Locked on Card</div>
+  <div class="card-locked-badge" id="lockedBadge"><span class="badge-dot"></span><span id="lockedText">Card Locked • Playing</span></div>
 
   <div class="bottom-dock" id="bottomDock">
     <div class="story-progress-container" id="storyProgress">
@@ -523,19 +572,32 @@ function initProceduralAudio() {
 }
 
 let bgAudio = null;
+let hasTriggeredAudio = false;
 
-function initAudioTrack() {
+function primeAudio() {
+  if (CONFIG.audioUrl && !bgAudio) {
+    bgAudio = new Audio(CONFIG.audioUrl);
+    bgAudio.loop = true;
+    bgAudio.volume = 0.75;
+    bgAudio.preload = 'auto';
+  }
+}
+
+// User touch before card scan primes audio silently
+window.addEventListener('touchstart', primeAudio, { passive: true, once: true });
+window.addEventListener('click', primeAudio, { passive: true, once: true });
+
+function startAudioOnLock() {
+  if (hasTriggeredAudio) return;
+  hasTriggeredAudio = true;
+
   if (CONFIG.audioUrl) {
-    if (!bgAudio) {
-      bgAudio = new Audio(CONFIG.audioUrl);
-      bgAudio.loop = true;
-      bgAudio.volume = 0.75;
-    }
+    primeAudio();
     bgAudio.play().then(() => {
       isMuted = false;
       musicBtn.textContent = '🔊';
     }).catch(e => {
-      console.warn('Audio auto-play prevented by browser policy, unlocking on first interaction:', e);
+      console.warn('Audio play on lock deferred until user tap:', e);
       isMuted = true;
       musicBtn.textContent = '🔈';
       const unlockAudio = () => {
@@ -582,7 +644,8 @@ async function startWebAR() {
   loadingView.style.display = 'flex';
   loadStatus.textContent = 'Starting Camera & Card Tracker...';
 
-  initAudioTrack();
+  // Prepare audio silently; only starts once card target is confirmed
+  primeAudio();
 
   // Container must be visible before MindAR initialization
   const arContainer = document.getElementById('ar-container');
@@ -594,13 +657,16 @@ async function startWebAR() {
       imageTargetSrc: './targets.mind',
       filterMinCF: 0.0001,
       filterBeta: 0.01,
-      warmupTolerance: 3,
-      missTolerance: 10,
+      warmupTolerance: 2,
+      missTolerance: 80,
       uiLoading: "no",
       uiScanning: "no"
     });
 
     const { renderer, scene, camera } = mindarThree;
+
+    // Cap devicePixelRatio to 1.5 to eliminate mobile GPU thermal throttling & frame hangs
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 
     // Lighting (gentle to preserve unlit card contrast)
     const ambient = new THREE.AmbientLight(0xffffff, 0.75);
@@ -612,9 +678,15 @@ async function startWebAR() {
     // Anchor on Physical Card Target
     anchor = mindarThree.addAnchor(0);
 
+    // ── Persistent AR Stage (Decoupled from anchor.group to survive phone tilts) ──
+    const arStage = new THREE.Group();
+    arStage.matrixAutoUpdate = false;
+    arStage.visible = false;
+    scene.add(arStage);
+
     // ── 1. Ground Pedestal on Card Surface ──
     basePlateGroup = new THREE.Group();
-    anchor.group.add(basePlateGroup);
+    arStage.add(basePlateGroup);
 
     // Ornate Rotating Emblem Ring
     const ringGeo = new THREE.RingGeometry(0.20, 0.28, 40);
@@ -652,7 +724,7 @@ async function startWebAR() {
       cardsGroup.position.set(0, 0.02, 0.05);
       basePlateGroup.position.set(0, 0.02, 0.005);
     }
-    anchor.group.add(cardsGroup);
+    arStage.add(cardsGroup);
 
     // ── 3. Build 3D Card Meshes (with Cardstock Depth & Bevels) ──
     // Zoomed base dimensions for effortless reading at arm's length
@@ -747,20 +819,50 @@ async function startWebAR() {
     }
     cardsGroup.add(particlesGroup);
 
+    // ── Persistent Transform & Pose Smoothing Matrices ──
+    const targetPos = new THREE.Vector3();
+    const targetQuat = new THREE.Quaternion();
+    const targetScale = new THREE.Vector3();
+    const currentPos = new THREE.Vector3();
+    const currentQuat = new THREE.Quaternion();
+    const currentScale = new THREE.Vector3();
+    const lastValidMatrix = new THREE.Matrix4();
+    let isPoseInitialized = false;
+    let hasEverLocked = false;
+
     // Tracking events
     anchor.onTargetFound = () => {
       isTargetFound = true;
-      justFoundTarget = true;
-      targetFoundTime = performance.now();
+      if (!hasEverLocked) {
+        justFoundTarget = true;
+        targetFoundTime = performance.now();
+      }
+      hasEverLocked = true;
       scannerOverlay.style.display = 'none';
-      lockedBadge.style.display = 'block';
+      lockedBadge.style.display = 'flex';
+      const lt = document.getElementById('lockedText');
+      if (lt) lt.textContent = 'Card Locked • Playing';
+
+      // Start audio ONLY once card is triggered
+      startAudioOnLock();
+
       if (navigator.vibrate) {
-        try { navigator.vibrate(80); } catch(e) {}
+        try { navigator.vibrate(60); } catch(e) {}
       }
     };
 
     anchor.onTargetLost = () => {
       isTargetFound = false;
+
+      // STICKY PERSISTENCE: Once locked, DO NOT collapse 3D scene, DO NOT pause audio, DO NOT flash scanner box!
+      if (hasEverLocked) {
+        scannerOverlay.style.display = 'none';
+        lockedBadge.style.display = 'flex';
+        const lt = document.getElementById('lockedText');
+        if (lt) lt.textContent = 'Card Anchored • Playing';
+        return;
+      }
+
       scannerOverlay.style.display = 'flex';
       lockedBadge.style.display = 'none';
     };
@@ -777,10 +879,43 @@ async function startWebAR() {
 
     setCard(0);
 
-    // Render loop
+    // Render loop with sticky persistence and anti-tremor interpolation
     renderer.setAnimationLoop(() => {
       try {
-        updateOrientation();
+        if (anchor && anchor.group && arStage) {
+          const m = anchor.group.matrix.elements;
+          const isTracking = (m[0] !== 0 || m[5] !== 0 || m[10] !== 0);
+
+          if (isTracking) {
+            anchor.group.matrix.decompose(targetPos, targetQuat, targetScale);
+
+            if (!isPoseInitialized) {
+              currentPos.copy(targetPos);
+              currentQuat.copy(targetQuat);
+              currentScale.copy(targetScale);
+              isPoseInitialized = true;
+            } else {
+              // Smooth lerp/slerp to dampen hand tremors and grazing angle jitters
+              currentPos.lerp(targetPos, 0.35);
+              currentQuat.slerp(targetQuat, 0.35);
+              currentScale.lerp(targetScale, 0.35);
+            }
+
+            arStage.matrix.compose(currentPos, currentQuat, currentScale);
+            arStage.matrixWorld.copy(arStage.matrix);
+            arStage.matrixWorldNeedsUpdate = true;
+            lastValidMatrix.copy(arStage.matrix);
+            arStage.visible = true;
+          } else if (hasEverLocked) {
+            // Maintain last valid anchor pose so cards remain pinned on table without disappearing
+            arStage.matrix.copy(lastValidMatrix);
+            arStage.matrixWorld.copy(arStage.matrix);
+            arStage.matrixWorldNeedsUpdate = true;
+            arStage.visible = true;
+          }
+        }
+
+        updateOrientation(arStage);
         updateLayoutAnimation();
         updateParticles();
         updateStoryProgress();
@@ -808,7 +943,7 @@ async function startWebAR() {
 // LAYOUT CHOREOGRAPHY ENGINES
 // ----------------------------------------------------------------------------
 function updateLayoutAnimation() {
-  if (!isTargetFound || !cardsGroup) return;
+  if ((!isTargetFound && !hasEverLocked) || !cardsGroup) return;
 
   const now = performance.now();
   const timeSinceFound = (now - targetFoundTime) / 1000; // in seconds
@@ -905,7 +1040,7 @@ function updateLayoutAnimation() {
 }
 
 function updateParticles() {
-  if (!particlesGroup) return;
+  if (!particlesGroup || (!isTargetFound && !hasEverLocked)) return;
   particlesGroup.children.forEach(p => {
     p.position.y -= p.userData.speedY;
     p.position.x += p.userData.driftX;
@@ -935,10 +1070,10 @@ function setCard(idx) {
 }
 
 // ── Anti-Tremor Deadband Camera-Facing Orientation ──
-function updateOrientation() {
-  if (!isTargetFound || !cardsGroup || !anchor || !anchor.group) return;
+function updateOrientation(stage) {
+  if (!stage || !stage.visible || !cardsGroup) return;
 
-  anchor.group.getWorldQuaternion(parentQuat);
+  stage.getWorldQuaternion(parentQuat);
   targetLocalQuat.copy(parentQuat).invert();
 
   if (justFoundTarget) {
