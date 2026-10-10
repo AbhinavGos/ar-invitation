@@ -355,7 +355,7 @@
     <div class="hud-badge" id="hudStatus">
       <div class="badge-dot lost" id="hudDot"></div>
       <span id="hudStatusText">Searching for Card...</span>
-      <span style="font-size: 9px; opacity: 0.65; margin-left: 4px; border-left: 1px solid rgba(244,192,104,0.4); padding-left: 6px;">v2.3</span>
+      <span style="font-size: 9px; opacity: 0.65; margin-left: 4px; border-left: 1px solid rgba(244,192,104,0.4); padding-left: 6px;">v2.4 · 3D Pop-Up Stage</span>
     </div>
     <div class="hud-actions">
       <button class="icon-btn" id="audioBtn" title="Toggle Audio">🔊</button>
@@ -373,9 +373,9 @@
 
     <!-- Quick Controls: Angle and Scale -->
     <div class="controls-row">
-      <button class="control-chip active" id="angleAutoBtn" title="Faces camera directly at any viewing angle">👁️ Face Camera</button>
-      <button class="control-chip" id="angleEaselBtn" title="60° luxury pop-up easel for desks &amp; tablets">📐 60° Pop-Up</button>
+      <button class="control-chip active" id="angleEaselBtn" title="60° luxury pop-up easel for desks &amp; tablets">📐 60° Pop-Up</button>
       <button class="control-chip" id="angleStandBtn" title="90° upright vertical stand">🧍 Upright</button>
+      <button class="control-chip" id="angleAutoBtn" title="Faces camera directly at any viewing angle">👁️ Face Camera</button>
       <button class="control-chip" id="angleFlushBtn" title="Lying flat flush with card">📄 Flat on Card</button>
     </div>
 
@@ -451,13 +451,14 @@ let cardPivotGroup = null; // Hinged/pivoted at bottom edge
 let videoMesh = null;
 let shadowMesh = null;
 let standPedestal = null;
-let edgeBevel = null;
+let kickstandGroup = null;
+let stageRing = null;
 let petalsGroup = null;
 
 let isTargetFound = false;
 let hasEverLocked = false;
 let userManuallyPaused = false;
-let currentAngleMode = 'auto'; // 'auto' | 'easel' | 'stand' | 'flush'
+let currentAngleMode = 'easel'; // Default to 60° pop-up easel for instant 3D perspective
 let currentZoomScale = 1.25;
 
 // Interpolation & stability vectors
@@ -498,24 +499,30 @@ function createContactShadowTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
-// ── Floating Floral Petals (Matching video aesthetic) ────────────────────────
+// ── Multi-Plane Floating Floral Petals (Foreground + Background Occlusion) ───
 function createPetals() {
   const group = new THREE.Group();
-  const count = 28;
-  const geo = new THREE.PlaneGeometry(0.04, 0.055);
+  const count = 30;
+  const geo = new THREE.PlaneGeometry(0.042, 0.058);
   const mat = new THREE.MeshBasicMaterial({
     color: 0xffe2b8,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.8
+    opacity: 0.82
   });
 
   for (let i = 0; i < count; i++) {
     const p = new THREE.Mesh(geo, mat.clone());
+    // Alternate between foreground (floats in front of video) and background (floats behind frame)
+    const isForeground = i % 2 === 0;
+    const zOffset = isForeground 
+      ? 0.05 + Math.random() * 0.12 
+      : -(0.06 + Math.random() * 0.12);
+
     p.position.set(
-      (Math.random() - 0.5) * 1.5,
-      (Math.random() - 0.5) * 2.2,
-      (Math.random() - 0.5) * 0.6 + 0.2
+      (Math.random() - 0.5) * 1.4,
+      Math.random() * (VIDEO_HEIGHT + 0.3),
+      zOffset
     );
     p.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
     p.userData = {
@@ -575,9 +582,17 @@ async function startAR() {
     // Cap devicePixelRatio to 1.5 to eliminate mobile GPU thermal throttling & frame hangs
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 
-    // Ambient Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    // ── Lighting for Realistic Metallic Depth ──
+    const ambientLight = new THREE.AmbientLight(0xfff6ea, 0.95);
     scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffeed0, 1.3);
+    keyLight.position.set(-2, 4, 3);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0xd4af37, 0.65);
+    rimLight.position.set(2, 2, -2);
+    scene.add(rimLight);
 
     // Anchor on Card Image Target (index 0)
     anchor = mindarThree.addAnchor(0);
@@ -588,67 +603,159 @@ async function startAR() {
     arStage.visible = false;
     scene.add(arStage);
 
+    // ── 0. Concentric Ground Rings on Card Surface (Rotates slowly for ground anchoring) ──
+    stageRing = new THREE.Group();
+    const ringMat1 = new THREE.MeshBasicMaterial({ color: 0xd4af37, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
+    const ringMat2 = new THREE.MeshBasicMaterial({ color: 0xfce0a2, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+    const ringGeo1 = new THREE.RingGeometry(0.46, 0.475, 48);
+    const ringGeo2 = new THREE.RingGeometry(0.60, 0.615, 48);
+    const ring1 = new THREE.Mesh(ringGeo1, ringMat1);
+    const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
+    stageRing.add(ring1);
+    stageRing.add(ring2);
+    stageRing.position.set(0, -HALF_HEIGHT + 0.1, 0.002);
+    arStage.add(stageRing);
+
     // ── 1. Contact Ground Shadow on Card Surface ──
-    const shadowGeo = new THREE.PlaneGeometry(CARD_WIDTH * 1.25, 0.4);
+    const shadowGeo = new THREE.PlaneGeometry(CARD_WIDTH * 1.35, 0.45);
     const shadowMat = new THREE.MeshBasicMaterial({
       map: createContactShadowTexture(),
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.62,
       depthWrite: false
     });
     shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-    // Positioned along the bottom hinge line on the card surface
     shadowMesh.position.set(0, -HALF_HEIGHT, 0.003);
     arStage.add(shadowMesh);
 
-    // ── 2. 3D Golden Pedestal Hinge Bar at Bottom Edge ──
-    const standGeo = new THREE.BoxGeometry(CARD_WIDTH + 0.04, 0.024, 0.02);
-    const standMat = new THREE.MeshBasicMaterial({
-      color: 0xd4af37
+    // ── 2. 3D Golden Pedestal at Bottom Edge ──
+    const standMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      metalness: 0.88,
+      roughness: 0.25
     });
+    const standGeo = new THREE.BoxGeometry(CARD_WIDTH + 0.06, 0.026, 0.036);
     standPedestal = new THREE.Mesh(standGeo, standMat);
-    standPedestal.position.set(0, -HALF_HEIGHT, 0.01);
+    standPedestal.position.set(0, -HALF_HEIGHT, 0.015);
     arStage.add(standPedestal);
 
     // ── 3. Pivot Transform Group (Hinged at Bottom Edge: y = -HALF_HEIGHT) ──
     cardPivotGroup = new THREE.Group();
-    cardPivotGroup.position.set(0, -HALF_HEIGHT, 0.012);
+    cardPivotGroup.position.set(0, -HALF_HEIGHT, 0.015);
     arStage.add(cardPivotGroup);
 
-    // ── 4. High-Definition Video Texture & Material (NO Z-FIGHTING) ──
+    // ── 4. Curved 3D Video Screen (Parabolic horizontal curvature R = 2.6) ──
     const videoTexture = new THREE.VideoTexture(video);
     videoTexture.colorSpace = THREE.SRGBColorSpace;
     videoTexture.minFilter = THREE.LinearFilter;
     videoTexture.magFilter = THREE.LinearFilter;
     videoTexture.generateMipmaps = false;
 
-    // Shift geometry so (0,0) is at the bottom hinge
-    const videoGeo = new THREE.PlaneGeometry(VIDEO_WIDTH, VIDEO_HEIGHT);
-    videoGeo.translate(0, HALF_VIDEO_HEIGHT, 0); // Bottom is at (0, 0, 0) of cardPivotGroup
+    // Subdivide 16 segments horizontally for smooth curvature
+    const videoGeo = new THREE.PlaneGeometry(VIDEO_WIDTH, VIDEO_HEIGHT, 16, 1);
+    const vPos = videoGeo.attributes.position;
+    const curveR = 2.6;
+    for (let i = 0; i < vPos.count; i++) {
+      const vx = vPos.getX(i);
+      // Parabolic curve: center is forward at z=0, edges curve backward by ~0.044
+      vPos.setZ(i, -(vx * vx) / (2 * curveR));
+    }
+    videoGeo.computeVertexNormals();
+    videoGeo.translate(0, HALF_VIDEO_HEIGHT, 0); // Bottom rests at pivot
 
     const videoMat = new THREE.MeshBasicMaterial({
       map: videoTexture,
-      side: THREE.DoubleSide
+      side: THREE.FrontSide
     });
     videoMesh = new THREE.Mesh(videoGeo, videoMat);
-    videoMesh.position.set(0, 0, 0.002); // Clean positive offset, NO coplanar box
+    videoMesh.position.set(0, 0, 0.006);
     cardPivotGroup.add(videoMesh);
 
-    // ── 5. Recessed Golden Backing Card (Strictly behind at z = -0.004) ──
-    // Zero z-fighting because its front face is at -0.001, safely behind videoMesh (+0.002)
-    const backGeo = new THREE.PlaneGeometry(VIDEO_WIDTH + 0.02, VIDEO_HEIGHT + 0.02);
-    backGeo.translate(0, HALF_VIDEO_HEIGHT, 0);
-    const backMat = new THREE.MeshBasicMaterial({
-      color: 0xc89b38,
-      side: THREE.DoubleSide
+    // ── 5. 3D Gold Shadowbox Frame Structure ──
+    const frameGoldMat = new THREE.MeshStandardMaterial({
+      color: 0xdfa83e,
+      metalness: 0.88,
+      roughness: 0.22
     });
-    const backMesh = new THREE.Mesh(backGeo, backMat);
-    backMesh.position.set(0, 0, -0.004);
-    cardPivotGroup.add(backMesh);
 
-    // ── 6. Atmospheric Floating Petals ──
+    const frameGroup = new THREE.Group();
+    const frameDepth = 0.032;
+    const frameBorder = 0.022;
+
+    // Left pillar
+    const leftPillarGeo = new THREE.BoxGeometry(frameBorder, VIDEO_HEIGHT + frameBorder * 2, frameDepth);
+    const leftPillar = new THREE.Mesh(leftPillarGeo, frameGoldMat);
+    leftPillar.position.set(-(VIDEO_WIDTH / 2 + frameBorder / 2), HALF_VIDEO_HEIGHT, -frameDepth / 2 + 0.012);
+    frameGroup.add(leftPillar);
+
+    // Right pillar
+    const rightPillarGeo = new THREE.BoxGeometry(frameBorder, VIDEO_HEIGHT + frameBorder * 2, frameDepth);
+    const rightPillar = new THREE.Mesh(rightPillarGeo, frameGoldMat);
+    rightPillar.position.set((VIDEO_WIDTH / 2 + frameBorder / 2), HALF_VIDEO_HEIGHT, -frameDepth / 2 + 0.012);
+    frameGroup.add(rightPillar);
+
+    // Top Header
+    const topBarGeo = new THREE.BoxGeometry(VIDEO_WIDTH + frameBorder * 2, frameBorder, frameDepth);
+    const topBar = new THREE.Mesh(topBarGeo, frameGoldMat);
+    topBar.position.set(0, VIDEO_HEIGHT + frameBorder / 2, -frameDepth / 2 + 0.012);
+    frameGroup.add(topBar);
+
+    // Bottom Sill
+    const bottomBarGeo = new THREE.BoxGeometry(VIDEO_WIDTH + frameBorder * 2, frameBorder, frameDepth);
+    const bottomBar = new THREE.Mesh(bottomBarGeo, frameGoldMat);
+    bottomBar.position.set(0, frameBorder / 2, -frameDepth / 2 + 0.012);
+    frameGroup.add(bottomBar);
+
+    // Solid Backing Plate (Rich dark metallic with gold rim)
+    const backMat = new THREE.MeshStandardMaterial({
+      color: 0x182232,
+      metalness: 0.72,
+      roughness: 0.38
+    });
+    const backPlateGeo = new THREE.BoxGeometry(VIDEO_WIDTH + frameBorder * 2, VIDEO_HEIGHT + frameBorder * 2, 0.01);
+    const backPlate = new THREE.Mesh(backPlateGeo, backMat);
+    backPlate.position.set(0, HALF_VIDEO_HEIGHT, -frameDepth + 0.005);
+    frameGroup.add(backPlate);
+
+    // Royal Crest Crown Medallion at Top
+    const crownMat = new THREE.MeshStandardMaterial({
+      color: 0xffd166,
+      metalness: 0.9,
+      roughness: 0.2
+    });
+    const crownGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.016, 24);
+    crownGeo.rotateX(Math.PI / 2);
+    const crownMesh = new THREE.Mesh(crownGeo, crownMat);
+    crownMesh.position.set(0, VIDEO_HEIGHT + frameBorder + 0.024, 0.005);
+    frameGroup.add(crownMesh);
+
+    cardPivotGroup.add(frameGroup);
+
+    // ── 6. 3D Architectural Easel Kickstand (Propping Frame From Behind) ──
+    kickstandGroup = new THREE.Group();
+    const strutMat = new THREE.MeshStandardMaterial({
+      color: 0xb5892e,
+      metalness: 0.85,
+      roughness: 0.3
+    });
+    const hingeGeo = new THREE.BoxGeometry(0.08, 0.02, 0.02);
+    const hinge = new THREE.Mesh(hingeGeo, strutMat);
+    hinge.position.set(0, VIDEO_HEIGHT * 0.65, -frameDepth + 0.002);
+    kickstandGroup.add(hinge);
+
+    const strutLength = VIDEO_HEIGHT * 0.62;
+    const strutGeo = new THREE.BoxGeometry(0.032, strutLength, 0.012);
+    strutGeo.translate(0, -strutLength / 2, 0); // Origin at top hinge
+    const strut = new THREE.Mesh(strutGeo, strutMat);
+    strut.position.set(0, VIDEO_HEIGHT * 0.65, -frameDepth + 0.002);
+    strut.rotation.x = -Math.PI / 6.5; // Angled back ~27 degrees
+    kickstandGroup.add(strut);
+
+    cardPivotGroup.add(kickstandGroup);
+
+    // ── 7. Multi-Plane Floating Petals (Attached to cardPivotGroup for consistent occlusion) ──
     petalsGroup = createPetals();
-    arStage.add(petalsGroup);
+    cardPivotGroup.add(petalsGroup);
 
     // Apply initial angle and scale
     applyAngleMode(currentAngleMode);
@@ -760,7 +867,11 @@ async function startAR() {
         cardPivotGroup.quaternion.slerp(targetLocalQuat, 0.16);
       }
 
-      // 3. Animate floating petals when card is detected/locked
+      // 3. Live Ambient Animations (Petals & Ground Dais Ring)
+      if (stageRing && (isTargetFound || hasEverLocked)) {
+        stageRing.rotation.z += 0.004;
+      }
+
       if (petalsGroup && (isTargetFound || hasEverLocked)) {
         petalsGroup.children.forEach(p => {
           p.position.y -= p.userData.speedY;
@@ -769,9 +880,9 @@ async function startAR() {
           p.rotation.y += p.userData.rotY;
           p.rotation.z += p.userData.rotZ;
 
-          if (p.position.y < -1.2) {
-            p.position.y = 1.2;
-            p.position.x = (Math.random() - 0.5) * 1.5;
+          if (p.position.y < -0.15) {
+            p.position.y = VIDEO_HEIGHT + 0.25;
+            p.position.x = (Math.random() - 0.5) * 1.4;
           }
         });
       }
@@ -798,6 +909,8 @@ function applyAngleMode(mode) {
     angleAutoBtn.classList.add('active');
     if (shadowMesh) shadowMesh.visible = true;
     if (standPedestal) standPedestal.visible = true;
+    if (kickstandGroup) kickstandGroup.visible = false;
+    if (stageRing) stageRing.visible = true;
   } else if (mode === 'easel') {
     // 60° tilt: Natural luxury photo frame / pop-up easel tilt for viewing on desks or tablets
     cardPivotGroup.quaternion.identity();
@@ -805,6 +918,8 @@ function applyAngleMode(mode) {
     angleEaselBtn.classList.add('active');
     if (shadowMesh) shadowMesh.visible = true;
     if (standPedestal) standPedestal.visible = true;
+    if (kickstandGroup) kickstandGroup.visible = true;
+    if (stageRing) stageRing.visible = true;
   } else if (mode === 'stand') {
     // 90° upright vertical stand
     cardPivotGroup.quaternion.identity();
@@ -812,6 +927,8 @@ function applyAngleMode(mode) {
     angleStandBtn.classList.add('active');
     if (shadowMesh) shadowMesh.visible = true;
     if (standPedestal) standPedestal.visible = true;
+    if (kickstandGroup) kickstandGroup.visible = true;
+    if (stageRing) stageRing.visible = true;
   } else if (mode === 'flush') {
     // 0° flush on card surface
     cardPivotGroup.quaternion.identity();
@@ -819,6 +936,8 @@ function applyAngleMode(mode) {
     angleFlushBtn.classList.add('active');
     if (shadowMesh) shadowMesh.visible = false;
     if (standPedestal) standPedestal.visible = false;
+    if (kickstandGroup) kickstandGroup.visible = false;
+    if (stageRing) stageRing.visible = false;
   }
 }
 
